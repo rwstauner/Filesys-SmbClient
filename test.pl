@@ -10,7 +10,7 @@ BEGIN
   { 
     $| = 1; 
     if (!-e ".c") { print "1..1\n"; }
-    else { print "1..14\n";}
+    else { print "1..15\n";}
   }
 END {print "not ok 1 Load module\n" unless $loaded;}
 use Filesys::SmbClient;
@@ -24,7 +24,7 @@ print "ok 1 Load module\n";
 # of the test code):
 
 if (-e ".c") {
-  my $total_test = 13;
+  my $total_test = 14;
   my $courant = 0;
   use POSIX;
   open(F,".c") || die "Can't read .c\n";
@@ -41,26 +41,26 @@ if (-e ".c") {
     { print "ok 2 Create directory\n"; $courant++;}
   else { print "not ok 2 Create directory: ", $!, "\n"; }
 
+  # Create a existent directory
+  if ($smb->mkdir("$server/toto",'0666'))
+    { print "not ok 3 Create existent directory\n"; }
+  else { print "ok 3 Create existent directory: ", $!, "\n"; $courant++;}
+
   # Write a file
   my $fd = $smb->open(">$server/toto/test",0666);
   if ($fd)
     {
 	if ($smb->write($fd,"A test of write call"))
-	  { print "ok 3 Create file\n";  $courant++;}
-	else { print "not ok 3 Create file $!\n"; }
+	  { print "ok 4 Create file\n";  $courant++;}
+	else { print "not ok 4 Create file $!\n"; }
 	$smb->close($fd);
     }
-  else { print "not ok 3 Create file:", $!, "\n"; }
+  else { print "not ok 4 Create file:", $!, "\n"; }
 
   # Rename a file
   if ($smb->rename("$server/toto/test","$server/toto/tata"))
-    { print "ok 4 Rename file\n";  $courant++;}
-  else { print "not ok 4 Rename file ", $!, "\n"; }
-
-  # Rename a non-existent ile
-  if ($smb->rename("$server/toto/testrr","$server/toto/tata"))
-    { print "not ok 5 Rename non-existent file\n"; }
-  else { print "ok 5 Rename non-existent file\n";  $courant++;}
+    { print "ok 5 Rename file\n";  $courant++;}
+  else { print "not ok 5 Rename file ", $!, "\n"; }
 
   # Stat a file
   my @tab = $smb->stat("$server/toto/tata");
@@ -69,7 +69,7 @@ if (-e ".c") {
 
   # Stat a non-existent file
   my @tab = $smb->stat("smb://jupiter/soft/lala");
-  if ($#tab == 0) { print "ok 7 Stat non-existent file \n"; $courant++;}
+  if ($#tab == 0) { print "ok 7 Stat non-existent file: $! \n"; $courant++;}
   else { print "not ok 7 Stat non-existent file\n"; }
 
   # Read a file
@@ -115,7 +115,7 @@ if (-e ".c") {
   # Unlink a non-existent file
   if ($smb->unlink("$server/toto/tatarr"))
     { print "not ok 12 Unlink non-existent file\n";}
-  else { print "ok 12 Unlink non-existent file\n";   $courant++;}
+  else { print "ok 12 Unlink non-existent file:$!\n";   $courant++;}
 
   # Erase this directory
   if ($smb->rmdir("$server/toto/"))
@@ -125,13 +125,22 @@ if (-e ".c") {
   # Erase non-existent directory
   if ($smb->rmdir("$server/totoarr/"))
     { print "not ok 14 Rm non-existent directory\n"; }
-  else { print "ok 14 Rm non-existent directory\n";  $courant++;}
+  else { print "ok 14 Rm non-existent directory:$!\n";  $courant++;}
 
+  # Rename a non-existent file
+  if ($smb->rename("$server/toto/testrr","$server/toto/tata"))
+    { print "not ok 15 Rename non-existent file\n"; }
+  else { print "ok 15 Rename non-existent file:$!\n";  $courant++;}
+
+
+
+  my $finalcut = 0;
   if ($courant == $total_test) 
     { print "All SMB test successful !\n\n"; }
-  else { print "Some SMB tests fails !\n\n"; }
+  else { $finalcut = 1; print "Some SMB tests fails !\n\n"; }
 
   print "There is a .c file in this directory with info about your params \n",
         "for you SMB server test. Think to remove it if you have finish \n",
 	  "with test.\n\n";
+  exit($finalcut);
 }

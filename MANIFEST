@@ -8,8 +8,7 @@ Makefile.PL
 SmbClient.pm
 SmbClient.xs
 test.pl
-lib/libauthSamba.c
-lib/libauthSamba.h
-lib/Makefile.PL
+libauthSamba.c
+libauthSamba.h
 smb2www-2.cgi
 smb2www.css

@@ -451,7 +451,7 @@ echo > confdefs.h
 
 # A filename unique to this package, relative to the directory that
 # configure is in, which we can look for to find out if srcdir is correct.
-ac_unique_file=lib/libauthSamba.h
+ac_unique_file=libauthSamba.h
 
 # Find the source files, if location was not specified.
 if test -z "$srcdir"; then
@@ -1089,3 +1089,4 @@ EOF
 chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
+

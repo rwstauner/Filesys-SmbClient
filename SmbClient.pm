@@ -5,6 +5,9 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 1.2  2002/08/09 11:09:14  alian
+# Correction usage mkdir incorrect
+#
 # Revision 1.1  2002/02/24 09:55:20  alian
 # - Update to 1.1 release. With autoconf and last test, this release can be
 # see as first stable tested release.
@@ -55,7 +58,7 @@ require AutoLoader;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK);
-$VERSION = ('$Revision: 1.1 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 1.2 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -122,7 +125,7 @@ sub new
 	{
 	  print STDERR "you don't have a $ENV{HOME}/.smb/smb.conf, ",
 	    "I will create it (empty file)\n";
-	  mkdir "$ENV{HOME}/.smb" unless (-e "$ENV{HOME}/.smb");
+	  mkdir "$ENV{HOME}/.smb",0755 unless (-e "$ENV{HOME}/.smb");
 	  open(F,">$ENV{HOME}/.smb/smb.conf") || 
 	    die "Can't create $ENV{HOME}/.smb/smb.conf : $!\n";
 	  close(F);	  
@@ -244,7 +247,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 1.1 $
+$Revision: 1.2 $
 
 =head1 FONCTIONS
 

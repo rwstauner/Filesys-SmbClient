@@ -18,7 +18,7 @@ char *alloca ();
 #include "perl.h"
 #include "XSUB.h"
 #include "libsmbclient.h"
-#include "lib/libauthSamba.h"
+#include "libauthSamba.h"
 
 /* 
  * Ce fichier definit les fonctions d'interface avec libsmbclient.so 

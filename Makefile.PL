@@ -6,11 +6,13 @@ my ($define, $ccfl);
 ($^O =~ m/AIX/i) ? ($ccfl = '-qcpluscmt') : ($ccfl = '');
 
 # path libsmbclient.h
-my $include = prompt("Where can I find libsmbclient.h ?","/usr/include");
+my $include = try_to_find("libsmbclient.h");
+$include = prompt("Where can I find libsmbclient.h ?", $include);
 warn_user("$include/libsmbclient.h") if (!-r "$include/libsmbclient.h");
 
 # path libsmbclient.so
-my $lib = prompt("Where can I find libsmbclient.so ?","/usr/lib");
+my $lib = try_to_find("libsmbclient.so");
+$lib = prompt("Where can I find libsmbclient.so ?",$lib);
 warn_user("libsmbclient.so") if (!-r "$lib/libsmbclient.so");
 
 # tests demande ?
@@ -43,19 +45,10 @@ WriteMakefile(
 		  'VERSION_FROM' => 'SmbClient.pm',
 		  'INC'          => "-I$include",
 		  'DEFINE'       => $define,
-		  'DIR'          => 'lib',
 		  'LIBS'         => ["-L$lib -lsmbclient"],
-		  'MYEXTLIB'     => 'lib/libAuthSamba$(LIB_EXT)',
+	          'OBJECT'       => 'libauthSamba.o SmbClient.o',
 		  'CCFLAGS'      => $ccfl
 		 );
-
-sub MY::postamble
-  {
-    return	'
-$(MYEXTLIB): lib/Makefile
-	cd lib && $(MAKE) all
-';
-  }
 
 sub warn_user
   {
@@ -81,3 +74,19 @@ libsmbclient.so in source/bin directory. You can then put them in
 EOF
 
   }
+
+sub try_to_find {
+  my $name = shift;
+  my @path;
+  if ($name=~m!\.h$!) {
+    @path = qw!/usr/include /usr/local/include /usr/local/samba/include!;
+  }
+  else {
+    @path = qw!/usr/lib /usr/local/lib /usr/local/bin /usr/local/samba/bin!; 
+  }
+  print "-- Try to find $name in ", join(' ',@path),"\n";
+  foreach my $d (@path) {
+    print "-- I found $name in $d\n";
+    if (-e "$d/$name") { return $d; }
+  }
+}
