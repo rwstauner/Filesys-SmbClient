@@ -93,13 +93,16 @@ _opendir(fname)
  *
  */
       RETVAL = smbc_opendir(fname);
+      if (RETVAL < 0)
+        { 
+	    RETVAL = 0;
 #ifdef VERBOSE
-      if (RETVAL<0) 
+  if (RETVAL<0) 
 	{fprintf(stderr, "Error opendir %s : %s\n", fname, strerror(errno));}
 #endif
+	  }
     OUTPUT:
       RETVAL
-
 
 
 int

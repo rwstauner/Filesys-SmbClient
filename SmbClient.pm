@@ -5,8 +5,13 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 0.9  2002/01/05 14:06:58  alian
+# - Add rmdir_recurse method
+# - Update POD documentation for change in opendir return on error
+#
 # Revision 0.8  2002/01/04 21:23:05  alian
-# - Add defaut param for size of buf to put in write method
+# - Add defaut size for buf to write in write method (last param is now
+#   optionnal)
 # - Update POD documentation
 #
 # Revision 0.7  2002/01/03 10:42:51  alian
@@ -20,28 +25,7 @@ package Filesys::SmbClient;
 # Revision 0.5  2001/10/22 12:39:36  alian
 # - Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
 # (else libsmbclient.so will segfault !)
-#
-# Revision 0.4  2001/10/22 10:58:38  alian
-# - Mise a jour de la documentation pour le nouveau format de open
-# - Suppression d'une trace oubliee
-#
-# Revision 0.3  2001/08/04 15:30:20  alian
-# - Update for version 2.2.1 of Samba
-# - Update POD documentation
-# - Add fstat, rmdir, unlink_print_job, print_file method
-# - Update return code to use Perl style
-# - Add TODO section
-# - Update read routine to remove memory leak
-# - Change parameters for constructor of Filesys::SmbClient : see POD doc
-#
-# Revision 0.2  2001/01/21 00:38:28  alian
-# + Update for version 1.10 of libsmbclient.c
-# + Provide readdir routines
-# + Add pod documentation
-#
-# Revision 0.1.1.1  2000/12/28 01:12:25  alian
-# First beta release
-#
+
 
 use strict;
 use constant SMBC_WORKGROUP  => 1;
@@ -62,7 +46,7 @@ require AutoLoader;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK);
-$VERSION = ('$Revision: 0.8 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 0.9 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -184,9 +168,32 @@ sub write
     my $lg = ( ($_[0]) ? shift : length($buffer) );
     _write($fd, $buffer, $lg);
   }
+
+
+#------------------------------------------------------------------------------
+# rmdir_recurse
+#------------------------------------------------------------------------------
+sub rmdir_recurse
+  {
+    my $self=shift;
+    my $url = shift;
+    my $fd = $self->opendir($url) || return undef;
+    my @f = $self->readdir_struct($fd);
+    $self->closedir($fd);
+    foreach my $v (@f)
+	{
+	  next if ($v->[1] eq '.' or $v->[1] eq '..');
+	  my $u = $url."/".$v->[1];
+	  if ($v->[0] == SMBC_FILE) { $self->unlink($u); }
+	  elsif ($v->[0] == SMBC_DIR) { $self->rmdir_recurse($u); }
+	}
+    return $self->rmdir($url);
+  }
+
 1;
 __END__
 
+#------------------------------------------------------------------------------
 
 =head1 NAME
 
@@ -228,7 +235,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 0.8 $
+$Revision: 0.9 $
 
 =head1 FONCTIONS
 
@@ -287,16 +294,29 @@ Example:
 =item rmdir($fname)
 
 Erase directory $fname. Return 1 on success, else 0 is return
-and errno and $! is set.
+and errno and $! is set. ($fname must be empty, else see 
+rmdir_recurse).
 
 Example:
 
   $smb->rmdir("smb://jupiter/doc/toto")
     || print "Error rmdir: ", $!, "\n";
 
+=item rmdir_recurse($fname)
+
+Erase directory $fname. Return 1 on success, else 0 is return
+and errno and $! is set. Il $fname is not empty, all files and
+dir will be deleted.
+
+Example:
+
+  $smb->rmdir_recurse("smb://jupiter/doc/toto")
+    || print "Error rmdir_recurse: ", $!, "\n";
+
 =item opendir($fname)
 
-Open directory $fname and return file descriptor.
+Open directory $fname. Return file descriptor on succes, else 0 is
+return and $! is set.
 
 =item readdir($fd)
 
@@ -546,6 +566,46 @@ lseekdir
 =item *
 
 lseek
+
+=back
+
+=head1 EXAMPLE
+
+This module come with two scripts:
+
+=over
+
+=item test.pl 
+
+Just for check that this module is ok :-)
+
+=item smb2www-2.cgi 
+
+A CGI interface with these features:
+
+=over
+
+=item *
+
+browse workgroup ,share, dir
+
+=item *
+
+read file
+
+=item *
+
+upload file
+
+=item *
+
+create directory
+
+=item *
+
+unlink file, directory
+
+=back
 
 =back
 

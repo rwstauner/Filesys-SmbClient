@@ -8,3 +8,5 @@ test.pl
 lib/libauthSamba.c
 lib/libauthSamba.h
 lib/Makefile.PL
+smb2www-2.cgi
+smb2www.css

@@ -1,40 +1,13 @@
 Revision history for Perl extension Filesys::SmbClient.
 
-0.1  Tue Dec 26 15:56:58 2000
-	- original version; created by h2xs 1.19
-
-0.2  2001/01/21 00:38:28  alian
- 	+ Update for version 1.10 of libsmbclient.c
- 	+ Provide readdir routines
- 	+ Add pod documentation
-
-
-0.3  2001/08/04 15:30:20  alian
- 	+ Update for version 2.2.1 of Samba
-  	+ Update POD documentation
- 	+ Add fstat, rmdir, unlink_print_job, print_file method
-	+ Update return code to use Perl style
-	+ Add TODO section
-	+ Update read routine to remove memory leak
-	+ Change parameters for constructor of Filesys::SmbClient : see POD doc
-
-0.4  2001/10/22	12:58:34 alian
-	+ Update Makefile.PL to find needed file
-	+ Update make test target to do real rest
-	+ Debug write method. All method ok
-
-0.5  2001/10/22 15:39:36 alian
-	+ Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
-	(else libsmbclient.so will segfault !)
-
-0.6  2001/12/13 23:20:41  alian
-	+ Change in _read method for take it binary safe. Tks to Robert Richmond
-	<bob@netus.com>
-
-0.7  2002/01/03 10:42:51  alian
-	+ Add comment for temporay hack in $HOME/.smb/smb.conf
-	+ Set $ENV['HOME'} to /tmp if unset
-	+ Add smb2www-2.cgi
+0.9  2002/01/05 14:06:58  alian
+ 	+ Add rmdir_recurse method
+	+ Change in opendir for correct return code on error
+	+ Update POD documentation
+	+ For smb2www.cgi (release 1.4)		
+		- Add feature for recurse delete directory
+		- Add a javascript confirm for delete
+		- Display total of size for files
 
 0.8  2002/01/04 21:23:05  alian
 	+ Add defaut size for buf to write in write method (last param is now
@@ -48,4 +21,38 @@ Revision history for Perl extension Filesys::SmbClient.
 		- Add some css example
 		- Display size in o, Ko, Mo, Go
 		- Add back after delete
-		
+
+0.7  2002/01/03 10:42:51  alian
+	+ Add comment for temporay hack in $HOME/.smb/smb.conf
+	+ Set $ENV['HOME'} to /tmp if unset
+	+ Add smb2www-2.cgi
+
+0.6  2001/12/13 23:20:41  alian
+	+ Change in _read method for take it binary safe. Tks to Robert Richmond
+	<bob@netus.com>
+
+0.5  2001/10/22 15:39:36 alian
+	+ Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
+	(else libsmbclient.so will segfault !)
+
+0.4  2001/10/22	12:58:34 alian
+	+ Update Makefile.PL to find needed file
+	+ Update make test target to do real rest
+	+ Debug write method. All method ok
+
+0.3  2001/08/04 15:30:20  alian
+ 	+ Update for version 2.2.1 of Samba
+  	+ Update POD documentation
+ 	+ Add fstat, rmdir, unlink_print_job, print_file method
+	+ Update return code to use Perl style
+	+ Add TODO section
+	+ Update read routine to remove memory leak
+	+ Change parameters for constructor of Filesys::SmbClient : see POD doc
+
+0.2  2001/01/21 00:38:28  alian
+ 	+ Update for version 1.10 of libsmbclient.c
+ 	+ Provide readdir routines
+ 	+ Add pod documentation
+
+0.1  Tue Dec 26 15:56:58 2000
+	- original version; created by h2xs 1.19
