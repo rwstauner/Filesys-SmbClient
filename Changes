@@ -1,5 +1,13 @@
 Revision history for Perl extension Filesys::SmbClient.
 
+1.5  2003/11/09 18:28:01  alian
+ - Add a Copyright section
+ - Correct a bug with samba3 (reported by dpavlin at rot13.org)
+ - Correct a bug with Sun Compiler (reported by jzhao at paymentech.com)
+
+1.4  2002/10/18 13:00:30  alian
+ - Update tie method
+
 1.3  2002/10/17 18:21:05  alian
  - Add tie method to play with filehandle like usually 
  (tks to Bryan Castillo for idea)

@@ -5,6 +5,9 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 1.5  2003/11/09 18:28:01  alian
+# Add Copyright section
+#
 # Revision 1.4  2002/10/18 13:00:30  alian
 # Same as previous release. Restrict filehandle to 5.6 and later
 #
@@ -52,7 +55,7 @@ my $DEBUG = 0;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK _write _open _close _read _lseek);
-$VERSION = ('$Revision: 1.4 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 1.5 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -381,17 +384,17 @@ Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so
 
   use POSIX;
   use Filesys::SmbClient;
-
+  
   my $smb = new Filesys::SmbClient(username  => "alian",
 				   password  => "speed",
 				   workgroup => "alian",
 				   debug     => 10);
-
+  
   # Read a file
   my $fd = $smb->open("smb://jupiter/doc/general.css", '0666');
   while (defined(my $l= $smb->read($fd,50))) {print $l; }
   $smb->close(fd);
-
+  
   # ...
 
 See section EXAMPLE for others scripts.
@@ -415,7 +418,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 1.4 $
+$Revision: 1.5 $
 
 =head1 FONCTIONS
 
@@ -698,10 +701,10 @@ Example:
 
   my $fd = $smb->open("smb://jupiter/doc/test", 0666) 
     or print "Can't read file:", $!, "\n";
-
+  
   my $fd = $smb->open(">smb://jupiter/doc/test", 0666) 
     or print "Can't create file:", $!, "\n";
-
+  
   my $fd = $smb->open(">>smb://jupiter/doc/test", 0666) 
     or print "Can't append to file:", $!, "\n";
 
@@ -831,8 +834,13 @@ unlink file, directory
 
 =back
 
-=head1 AUTHOR
+=head1 COPYRIGHT
 
-Alain BARBET,  alian@alianwebserver.com
+The Filesys-SmbClient module is Copyright (c) 1999-2003 Alain BARBET, France,
+alian at cpan.org. All rights reserved.
+
+You may distribute under the terms of either the GNU General
+Public License or the Artistic License, as specified
+in the Perl README file.
 
 =cut

@@ -88,10 +88,10 @@ sub try_to_find {
   my $name = shift;
   my @path;
   if ($name=~m!\.h$!) {
-    @path = qw!/usr/include /usr/local/include /usr/local/samba/include!;
+    @path = qw!/usr/include /usr/local/include /usr/local/samba/include /usr/local/samba3/include!;
   }
   else {
-    @path = qw!/usr/lib /usr/local/lib /usr/local/bin /usr/local/samba/bin!; 
+    @path = qw!/usr/lib /usr/local/lib /usr/local/bin /usr/local/samba/bin /usr/local/samba3/lib!; 
   }
   print "-- Try to find $name in ", join(' ',@path),"\n";
   foreach my $d (@path) {

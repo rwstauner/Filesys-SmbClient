@@ -1,4 +1,5 @@
 config.h.in
+COPYING
 configure
 configure.in
 README

@@ -159,8 +159,15 @@ _readdir(fd)
          if (dirp)
           {
           XPUSHs(sv_2mortal(newSVnv(dirp->smbc_type)));
+/*
+ * 	  original code here produces strings which include NULL as last char
+ *        with samba 3. Reported by dpavlin at rot13.org
+ *
           XPUSHs(sv_2mortal((SV*)newSVpv(dirp->name, dirp->namelen)));
           XPUSHs(sv_2mortal((SV*)newSVpv(dirp->comment, dirp->commentlen)));
+*/
+          XPUSHs(sv_2mortal((SV*)newSVpv(dirp->name, strlen(dirp->name))));
+          XPUSHs(sv_2mortal((SV*)newSVpv(dirp->comment, strlen(dirp->comment))));
           }
 
 
