@@ -274,7 +274,7 @@ _open(fname, mode)
       RETVAL
 
 
-char*
+SV*
 _read(fd,count)
   int fd
   int count
@@ -292,8 +292,8 @@ _read(fd,count)
      if (returnValue < 0)
         { fprintf(stderr, "Read %s : %s\n", buf, strerror(errno)); }
 #endif
-     if (returnValue==0) {RETVAL=NULL;}
-     else {RETVAL=buf;}
+     if (returnValue==0) {RETVAL=&PL_sv_undef;}
+     else {RETVAL=newSVpvn(buf,returnValue);}
     OUTPUT:
       RETVAL
 

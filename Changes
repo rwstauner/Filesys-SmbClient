@@ -23,6 +23,10 @@ Revision history for Perl extension Filesys::SmbClient.
 	+ Update make test target to do real rest
 	+ Debug write method. All method ok
 
-0.5  2001/10/22 155555:39:36 alian
+0.5  2001/10/22 15:39:36 alian
 	+ Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
 	(else libsmbclient.so will segfault !)
+
+0.6  2001/12/13 23:20:41  alian
+	+ Change in _read method for take it binary safe. Tks to Robert Richmond
+	<bob@netus.com>

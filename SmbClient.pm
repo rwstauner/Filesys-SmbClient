@@ -1,10 +1,14 @@
 package Filesys::SmbClient;
-
+ 
 # module Filesys::SmbClient : provide function to access Samba filesystem
 # with libsmclient.so
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 0.6  2001/12/13 23:20:41  alian
+# - Change in _read method for take it binary safe. Tks to Robert Richmond
+# <bob@netus.com>
+#
 # Revision 0.5  2001/10/22 12:39:36  alian
 # - Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
 # (else libsmbclient.so will segfault !)
@@ -50,7 +54,7 @@ require AutoLoader;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK);
-$VERSION = ('$Revision: 0.5 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 0.6 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -197,7 +201,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 0.5 $
+$Revision: 0.6 $
 
 =head1 FONCTIONS
 
