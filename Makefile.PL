@@ -40,15 +40,24 @@ if ($ans =~ /^y(es)?$/i) { $define = "-DVERBOSE"; }
 system("./configure") == 0 or die "Can't run configure:$!\n";
 
 # Create makefile
-WriteMakefile(
-		  'NAME'         => 'Filesys::SmbClient',
-		  'VERSION_FROM' => 'SmbClient.pm',
-		  'INC'          => "-I$include",
-		  'DEFINE'       => $define,
-		  'LIBS'         => ["-L$lib -lsmbclient"],
-	          'OBJECT'       => 'libauthSamba.o SmbClient.o',
-		  'CCFLAGS'      => $ccfl
-		 );
+WriteMakefile
+  (
+   'NAME'         => 'Filesys::SmbClient',
+   'VERSION_FROM' => 'SmbClient.pm',
+   'INC'          => "-I$include",
+   'DEFINE'       => $define,
+   'LIBS'         => ["-L$lib -lsmbclient"],
+   'OBJECT'       => 'libauthSamba.o SmbClient.o',
+   'CCFLAGS'      => $ccfl,
+   'PREREQ_PM'    => { Test::More => 0},
+   'clean' => { FILES => "*~ config.status config.log config.h config.cache .c"},
+   ($] ge '5.005') ?
+   (
+    'AUTHOR' => 'Alain BARBET (alian@alianwebserver.com)',
+    'ABSTRACT' => 'Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so'
+   )
+   : ()
+  );
 
 sub warn_user
   {

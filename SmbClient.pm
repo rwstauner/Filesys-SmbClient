@@ -5,6 +5,14 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 1.4  2002/10/18 13:00:30  alian
+# Same as previous release. Restrict filehandle to 5.6 and later
+#
+# Revision 1.3  2002/10/17 18:21:05  alian
+# -Add tie method to play with filehandle like usually 
+# (tks to Bryan Castillo for idea)
+# - Update Pod documentation
+#
 # Revision 1.2  2002/08/09 11:09:14  alian
 # Correction usage mkdir incorrect
 #
@@ -17,27 +25,7 @@ package Filesys::SmbClient;
 # - Add include for autoconf file
 # - Update DEBUG syntax
 #
-# Revision 0.9  2002/01/05 14:06:58  alian
-# - Add rmdir_recurse method
-# - Update POD documentation for change in opendir return on error
-#
-# Revision 0.8  2002/01/04 21:23:05  alian
-# - Add defaut size for buf to write in write method (last param is now
-#   optionnal)
-# - Update POD documentation
-#
-# Revision 0.7  2002/01/03 10:42:51  alian
-# - Add comment for temporay hack in $HOME/.smb/smb.conf
-# - Set $ENV['HOME'} to /tmp if unset
-#
-# Revision 0.6  2001/12/13 23:20:41  alian
-# - Change in _read method for take it binary safe. Tks to Robert Richmond
-# <bob@netus.com>
-#
-# Revision 0.5  2001/10/22 12:39:36  alian
-# - Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
-# (else libsmbclient.so will segfault !)
-
+# See file CHANGES for others update
 
 use strict;
 use constant SMBC_WORKGROUP  => 1;
@@ -49,16 +37,22 @@ use constant SMBC_IPC_SHARE =>6;
 use constant SMBC_DIR => 7;
 use constant SMBC_FILE => 8;
 use constant SMBC_LINK => 9;
+use constant MAX_LENGTH_LINE => 4096;
+
 use vars qw($AUTOLOAD $VERSION @ISA @EXPORT);
 require Exporter;
 require DynaLoader;
 require AutoLoader;
+use POSIX 'SEEK_SET';
 
-@ISA = qw(Exporter DynaLoader);
+use Tie::Handle;
+my $DEBUG = 0;
+
+@ISA = qw(Exporter DynaLoader Tie::Handle);
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
-	     SMBC_LINK);
-$VERSION = ('$Revision: 1.2 $ ' =~ /(\d+\.\d+)/)[0];
+	     SMBC_LINK _write _open _close _read _lseek);
+$VERSION = ('$Revision: 1.4 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -67,14 +61,11 @@ my %commandes =
    "close"            => \&_close,
    "closedir"         => \&_closedir,
    "fstat"            => \&_fstat,
-   "mkdir"            => \&_mkdir,
-   "open"             => \&_open,
    "opendir"          => \&_opendir,
    "print_file"       => \&_print_file,
    "stat"             => \&_stat,
    "rename"           => \&_rename,
    "rmdir"            => \&_rmdir,
-   "read"             => \&_read,
    "unlink"           => \&_unlink,
    "unlink_print_job" => \&_unlink_print_job,
   );
@@ -82,130 +73,305 @@ my %commandes =
 #------------------------------------------------------------------------------
 # AUTOLOAD
 #------------------------------------------------------------------------------
-sub AUTOLOAD
-  {
+sub AUTOLOAD  {
   my $self =shift;
   my $attr = $AUTOLOAD;
   $attr =~ s/.*:://;
   return unless $attr =~ /[^A-Z]/;
   die "Method undef ->$attr()\n" unless defined($commandes{$attr});
   return $commandes{$attr}->(@_);
+}
+
+#------------------------------------------------------------------------------
+# TIEHANDLE
+#------------------------------------------------------------------------------
+sub TIEHANDLE {
+  require 5.005_64;
+  my ($class,$fn,$mode) = @_;
+  $mode = '0666' if (!$mode);
+  my $self = {}; 
+  bless $self, $class;
+  print "Filesys::SmbClient new\n" if ($DEBUG);
+  if ($fn) {
+    $self->{FD} = _open($fn,$mode) or return undef; }
+  return $self;
+}
+
+#------------------------------------------------------------------------------
+# OPEN
+#------------------------------------------------------------------------------
+sub OPEN {
+  my ($class,$fn,$mode) = @_;
+  $mode = '0666' if (!$mode);
+  print "OPEN\n"  if ($DEBUG);
+  $class->{FD} = _open($fn,$mode) or return undef;
+  $class;
+}
+
+#------------------------------------------------------------------------------
+# FILENO
+#------------------------------------------------------------------------------
+sub FILENO {
+  my $class = shift;
+  return $class->{FD};
+}
+
+#------------------------------------------------------------------------------
+# WRITE
+#------------------------------------------------------------------------------
+sub WRITE {
+  my ($self,$buffer,$length,$offset) = @_;
+  print "Filesys::SmbClient WRITE\n"  if ($DEBUG);
+  $buffer = substr($buffer,0,$length) if ($length);
+  SEEK($self,$offset, SEEK_SET) if ($offset);
+  my $lg = _write($self->{FD}, $buffer, $length);
+  return ($lg == -1) ? undef : $lg;
+}
+
+#------------------------------------------------------------------------------
+# SEEK
+#------------------------------------------------------------------------------
+sub SEEK {
+  my ($self,$offset,$whence) = @_;
+  print "Filesys::SmbClient SEEK\n"  if ($DEBUG);
+  return _lseek($self->{FD}, $offset, SEEK_SET);
+}
+
+#------------------------------------------------------------------------------
+# READ
+#------------------------------------------------------------------------------
+sub READ {
+  my $self = shift;
+  print "Filesys::SmbClient READ\n" if ($DEBUG);
+  my $buf = \$_[0];
+  my $lg = ($_[1] ? $_[1] : MAX_LENGTH_LINE);
+  $$buf = _read($self->{FD}, $lg) or return undef;
+  return length($$buf);
+}
+
+#------------------------------------------------------------------------------
+# READLINE
+#------------------------------------------------------------------------------
+sub READLINE {
+  my $self = shift;
+  print "Filesys::SmbClient READLINE\n" if ($DEBUG);
+  # Check if we have \n on old string
+  my $buf = $self->{_BUFFER};
+  if ($buf && $buf=~m!^([^\n]*\n)(.*)$!ms) {
+    print "Gave ->$1<- and take ->$2<-\n" if ($self->{params}->{debug});
+    my $p = $1;
+    $self->{_BUFFER} = $2;
+    return wantarray() ? ($p,$self->READLINE) : $p;
   }
+  # Read while we haven't \n or eof
+  my $part;
+  READ($self,$part,MAX_LENGTH_LINE);
+  while ($part and $part!~m!\n!ms) {
+    $buf.=$part;
+    $part = $self->read($self->{_FD},@_);
+  }
+  $buf.= $part if ($part);
+  # eof
+  return (wantarray() ? "" : undef) if (!$buf);
+  # Return first line and save rest in $self->{_BUFFER}
+  if ($buf=~m!^([^\n]*\n)(.*)$!ms) {
+    print "Give ->$1<- and take ->$2<-\n" if ($self->{params}->{debug});
+    $self->{_BUFFER} = $2;
+    return wantarray() ? ($1,$self->READLINE) : $1;
+  }
+  undef $self->{_BUFFER};
+  return wantarray() ? ($buf,$self->READLINE) : $buf;
+}
+
+#------------------------------------------------------------------------------
+# GETC
+#------------------------------------------------------------------------------
+sub GETC {
+  my $self = shift;
+  my $c;
+  print "Filesys::SmbClient GETC\n" if ($DEBUG);
+  if ($self->{_BUFFER}) {
+    print "Filesys::SmbClient GETC using $self->{_BUFFER}\n" 
+      if ($self->{params}->{debug});
+    $c = substr($self->{_BUFFER},0,1);
+    $self->{_BUFFER} = substr($self->{_BUFFER},1);
+    return $c;
+  }
+  READ($self,$c,1) or return undef;
+  return $c;
+}
+
+#------------------------------------------------------------------------------
+# CLOSE
+#------------------------------------------------------------------------------
+sub CLOSE {
+  my $self = shift;
+  print "Filesys::SmbClient CLOSE\n" if ($DEBUG);
+  _close($self->{FD});
+}
+
+#------------------------------------------------------------------------------
+# UNTIE
+#------------------------------------------------------------------------------
+sub UNTIE {
+  require 5.005_64;
+  my $self=shift;
+  print "Filesys::SmbClient UNTIE\n" if ($DEBUG);
+  CLOSE($self);
+  undef($self->{_BUFFER});
+}
 
 #------------------------------------------------------------------------------
 # new
 #------------------------------------------------------------------------------
-sub new 
-  {
-    my $class = shift;
-    my $self = {};
-    my @l; 
-    bless $self, $class;
-    if (@_)
-      {
-	my %vars =@_;
-	if (!$vars{'workgroup'}) { $vars{'workgroup'}=""; }
-	if (!$vars{'username'})  { $vars{'username'}=""; }
-	if (!$vars{'password'})  { $vars{'password'}=""; }
-	if (!$vars{'debug'})     { $vars{'debug'}=0; }
-	push(@l, $vars{'username'});
-	push(@l, $vars{'password'});
-	push(@l, $vars{'workgroup'});
-	push(@l, $vars{'debug'});
-      }    
-    else { @l =("","","",0); }
-    # Here is a temporary hack:
-    # Actually libsmbclient will segfault if it can't find file
-    # $ENV{HOME}/.smb/smb.conf so I will test if it exist,
-    # and create it if no file is found. A empty file is enough ...
-    # In cgi environnement, $ENV{HOME} can be unset because
-    # nobody is not a real user. So I will set $ENV{HOME} to dir /tmp
-    if (!$ENV{HOME}) {$ENV{HOME}="/tmp";}
-    if (!-e "$ENV{HOME}/.smb/smb.conf")
-	{
-	  print STDERR "you don't have a $ENV{HOME}/.smb/smb.conf, ",
-	    "I will create it (empty file)\n";
-	  mkdir "$ENV{HOME}/.smb",0755 unless (-e "$ENV{HOME}/.smb");
-	  open(F,">$ENV{HOME}/.smb/smb.conf") || 
-	    die "Can't create $ENV{HOME}/.smb/smb.conf : $!\n";
-	  close(F);	  
-	}
-    # End of temporary hack
-
-    my $ret = _init(@l);
-    if ($ret <0)
-      {die 'You must have a samba configuration file '.
-	 '($HOME/.smb/smb.conf , even if it is empty';}
-    return $self;
+sub new   {
+  my $class = shift;
+  my $self = {};
+  my @l; 
+  bless $self, $class;
+  if (@_) {
+    my %vars =@_;
+    if (!$vars{'workgroup'}) { $vars{'workgroup'}=""; }
+    if (!$vars{'username'})  { $vars{'username'}=""; }
+    if (!$vars{'password'})  { $vars{'password'}=""; }
+    if (!$vars{'debug'})     { $vars{'debug'}=0; }
+    push(@l, $vars{'username'});
+    push(@l, $vars{'password'});
+    push(@l, $vars{'workgroup'});
+    push(@l, $vars{'debug'});
+    $self->{params}= \%vars;
   }
+  else { @l =("","","",0); }
+  # Here is a temporary hack:
+  # Actually libsmbclient will segfault if it can't find file
+  # $ENV{HOME}/.smb/smb.conf so I will test if it exist,
+  # and create it if no file is found. A empty file is enough ...
+  # In cgi environnement, $ENV{HOME} can be unset because
+  # nobody is not a real user. So I will set $ENV{HOME} to dir /tmp
+  if (!$ENV{HOME}) {$ENV{HOME}="/tmp";}
+  if (!-e "$ENV{HOME}/.smb/smb.conf") {
+    print STDERR "you don't have a $ENV{HOME}/.smb/smb.conf, ",
+      "I will create it (empty file)\n";
+    mkdir "$ENV{HOME}/.smb",0755 unless (-e "$ENV{HOME}/.smb");
+    open(F,">$ENV{HOME}/.smb/smb.conf") || 
+      die "Can't create $ENV{HOME}/.smb/smb.conf : $!\n";
+    close(F);
+  }
+  # End of temporary hack
+
+  my $ret = _init(@l);
+  die 'You must have a samba configuration file '.
+    '($HOME/.smb/smb.conf , even if it is empty' if ($ret <0);
+  return $self;
+}
+
 
 #------------------------------------------------------------------------------
 # readdir_struct
 #------------------------------------------------------------------------------
-sub readdir_struct
-  {
+sub readdir_struct  {
   my $self=shift;
-  if (wantarray())
-    {
-	my @tab;
-	while (my @l  = _readdir($_[0])) { push(@tab,\@l); }
-	return @tab;
-    }
-  else {my @l = _readdir($_[0]);return \@l if (@l);}
+  if (wantarray()) {
+    my @tab;
+    while (my @l  = _readdir($_[0])) { push(@tab,\@l); }
+    return @tab;
   }
+  else {my @l = _readdir($_[0]);return \@l if (@l);}
+}
 
 #------------------------------------------------------------------------------
 # readdir
 #------------------------------------------------------------------------------
-sub readdir
-  {
+sub readdir {
   my $self=shift;
-  if (wantarray())
-    {
+  if (wantarray()) {
     my @tab;
     while (my @l  = _readdir($_[0])) { push(@tab,$l[1]);}
     return @tab;
-    }
-  else {my @l =_readdir($_[0]);return $l[1];}
   }
+  else {my @l =_readdir($_[0]);return $l[1];}
+}
+
+#------------------------------------------------------------------------------
+# open
+#------------------------------------------------------------------------------
+sub open  {
+  my ($self,$file,$perms)=@_;
+  $perms = '0666' if (!$perms);
+  $self->{_FD} = _open($file, $perms);
+  print "Filesys::SmbClient open <$self->{_FD}>\n" 
+    if ($self->{params}->{debug});
+  return $self->{_FD};
+}
+
+#------------------------------------------------------------------------------
+# seek
+#------------------------------------------------------------------------------
+sub seek {
+  my ($self,$fd,$offset,$whence) = @_;
+  return -1 if ($fd == -1);
+  print "Filesys::SmbClient seek\n" if ($self->{params}->{debug});
+  $whence = SEEK_SET if (!$whence);
+  warn "Whence diff from SEEK_SET not implemented in smb"
+    if ($whence ne SEEK_SET);
+  return _lseek($fd, $offset, SEEK_SET);
+}
 
 #------------------------------------------------------------------------------
 # write
 #------------------------------------------------------------------------------
-sub write
-  {
-    my $self=shift;
-    my $fd = shift;
-    my $buffer = shift;
-    my $lg = ( ($_[0]) ? shift : length($buffer) );
-    _write($fd, $buffer, $lg);
-  }
+sub write  {
+  my ($self,$fd)=@_;
+  shift; shift;
+  my $buffer = join("",@_);
+  print "Filesys::SmbClient write $buffer\n"  if ($self->{params}->{debug});
+  return _write($fd, $buffer, length($buffer));
+}
 
+#------------------------------------------------------------------------------
+# read
+#------------------------------------------------------------------------------
+sub read  {
+  my ($self,$fd,$lg)=@_;
+  $lg = MAX_LENGTH_LINE if (!$lg);
+  return _read($fd, $lg);
+}
+
+#------------------------------------------------------------------------------
+# mkdir
+#------------------------------------------------------------------------------
+sub mkdir  {
+  my ($self,$dir,$mode)=@_;
+  $mode = '0755' if (!$mode);
+  return _mkdir($dir, $mode);
+}
 
 #------------------------------------------------------------------------------
 # rmdir_recurse
 #------------------------------------------------------------------------------
-sub rmdir_recurse
-  {
-    my $self=shift;
-    my $url = shift;
-    my $fd = $self->opendir($url) || return undef;
-    my @f = $self->readdir_struct($fd);
-    $self->closedir($fd);
-    foreach my $v (@f)
-	{
-	  next if ($v->[1] eq '.' or $v->[1] eq '..');
-	  my $u = $url."/".$v->[1];
-	  if ($v->[0] == SMBC_FILE) { $self->unlink($u); }
-	  elsif ($v->[0] == SMBC_DIR) { $self->rmdir_recurse($u); }
-	}
-    return $self->rmdir($url);
+sub rmdir_recurse  {
+  my $self=shift;
+  my $url = shift;
+  my $fd = $self->opendir($url) || return undef;
+  my @f = $self->readdir_struct($fd);
+  $self->closedir($fd);
+  foreach my $v (@f) {
+    next if ($v->[1] eq '.' or $v->[1] eq '..');
+    my $u = $url."/".$v->[1];
+    if ($v->[0] == SMBC_FILE) { $self->unlink($u); }
+    elsif ($v->[0] == SMBC_DIR) { $self->rmdir_recurse($u); }
   }
+  return $self->rmdir($url);
+}
+
 
 1;
+
 __END__
 
 #------------------------------------------------------------------------------
+
+=pod
 
 =head1 NAME
 
@@ -214,21 +380,21 @@ Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so
 =head1 SYNOPSIS
 
   use POSIX;
-  use Filesys::SmbClient;  
+  use Filesys::SmbClient;
 
   my $smb = new Filesys::SmbClient(username  => "alian",
-				   password  => "speed", 
+				   password  => "speed",
 				   workgroup => "alian",
-				   debug     => 10);  
-    
+				   debug     => 10);
+
   # Read a file
   my $fd = $smb->open("smb://jupiter/doc/general.css", '0666');
   while (defined(my $l= $smb->read($fd,50))) {print $l; }
-  $smb->close(fd);  
+  $smb->close(fd);
 
   # ...
 
-There is some others examples in test.pl file
+See section EXAMPLE for others scripts.
 
 =head1 DESCRIPTION
 
@@ -241,19 +407,21 @@ this libraries. Then copy source/include/libsmbclient.h
 and source/bin/libsmbclient.so where you need them before install this
 module.
 
+If you want to use filehandle with this module, you need Perl 5.6 or later.
+
 When a path is used, his scheme is :
 
   smb://server/share/rep/doc
 
 =head1 VERSION
 
-$Revision: 1.2 $
+$Revision: 1.4 $
 
 =head1 FONCTIONS
 
 =over
 
-=item new(%hash)
+=item new %hash
 
 Init connection
 Hash can have this keys:
@@ -289,11 +457,39 @@ Example:
 
 =back
 
+=head2 Tie Filesys::SmbClient filehandle
+
+This didn't work before 5.005_64. Why, I don't know.
+When you have tied a filehandle with Filesys::SmbClient,
+you can call classic methods for filehandle:
+print, printf, seek, syswrite, getc, open, close, read.
+See perldoc for usage.
+
+Example:
+
+  local *FD;
+  tie(*FD, 'Filesys::SmbClient');
+  open(FD,"smb://jupiter/doc/test")
+    or print "Can't open file:", $!, "\n";
+  while(<FD>) { print $_; }
+  close(FD);
+
+or
+
+  local *FD;
+  tie(*FD, 'Filesys::SmbClient');
+  open(FD,">smb://jupiter/doc/test")
+    or print "Can't create file:", $!, "\n";
+  print FD "Samba test","\n";
+  printf FD "%s", "And that work !\n";
+  close(FD);
+
+
 =head2 Directory
 
 =over
 
-=item mkdir($fname,$mode)
+=item mkdir FILENAME, MODE
 
 Create directory $fname with permissions set to $mode.
 Return 1 on success, else 0 is return and errno and $! is set.
@@ -301,9 +497,9 @@ Return 1 on success, else 0 is return and errno and $! is set.
 Example:
 
   $smb->mkdir("smb://jupiter/doc/toto",'0666') 
-    || print "Error mkdir: ", $!, "\n";
+    or print "Error mkdir: ", $!, "\n";
 
-=item rmdir($fname)
+=item rmdir FILENAME
 
 Erase directory $fname. Return 1 on success, else 0 is return
 and errno and $! is set. ($fname must be empty, else see 
@@ -312,9 +508,9 @@ rmdir_recurse).
 Example:
 
   $smb->rmdir("smb://jupiter/doc/toto")
-    || print "Error rmdir: ", $!, "\n";
+    or print "Error rmdir: ", $!, "\n";
 
-=item rmdir_recurse($fname)
+=item rmdir_recurse FILENAME
 
 Erase directory $fname. Return 1 on success, else 0 is return
 and errno and $! is set. Il $fname is not empty, all files and
@@ -323,14 +519,14 @@ dir will be deleted.
 Example:
 
   $smb->rmdir_recurse("smb://jupiter/doc/toto")
-    || print "Error rmdir_recurse: ", $!, "\n";
+    or print "Error rmdir_recurse: ", $!, "\n";
 
-=item opendir($fname)
+=item opendir FILENAME
 
 Open directory $fname. Return file descriptor on succes, else 0 is
 return and $! is set.
 
-=item readdir($fd)
+=item readdir FILEHANDLE
 
 Read a directory. In a list context, return the full content of
 the directory $fd, else return next element. Each elem is
@@ -344,10 +540,10 @@ Example:
   foreach my $n ($smb->readdir($fd)) {print $n,"\n";}
   close($fd);
 
-=item readdir_struct($fd)
+=item readdir_struct FILEHANDLE
 
 Read a directory. In a list context, return the full content of
-the directory $fd, else return next element. Each element
+the directory FILEHANDLE, else return next element. Each element
 is a ref to an array with type, name and comment. Type can be :
 
 =over
@@ -377,15 +573,14 @@ Return undef at end of directory.
 Example:
 
   my $fd = $smb->opendir("smb://jupiter/doc");
-  while (my $f = $smb->readdir_struct($fd))
-    {
+  while (my $f = $smb->readdir_struct($fd)) {
     if ($f->[0] == SMBC_DIR) {print "Directory ",$f->[1],"\n";}
     elsif ($f->[0] == SMBC_FILE) {print "File ",$f->[1],"\n";}
     # ...
-    }
+  }
   close($fd);
 
-=item closedir($fd)
+=item closedir FILEHANDLE
 
 Close directory $fd.
 
@@ -395,10 +590,10 @@ Close directory $fd.
 
 =over
 
-=item stat($fname)
+=item stat FILENAME
 
-Stat a file to get info via file $fname. Return a list with info on
-success, else an empty list is return and $! is set. 
+Stat a file FILENAME. Return a list with info on success,
+else an empty list is return and $! is set.
 
 List is made with:
 
@@ -462,39 +657,39 @@ Example:
 
   my @tab = $smb->stat("smb://jupiter/doc/tata");
   if ($#tab == 0) { print "Erreur in stat:", $!, "\n"; }
-  else
-    {
-      for (10..12) {$tab[$_] = localtime($tab[$_]);}
-      print join("\n",@tab);
-    }
+  else {
+    for (10..12) {$tab[$_] = localtime($tab[$_]);}
+    print join("\n",@tab);
+  }
 
-=item fstat($fd)
+=item fstat FILEHANDLE
 
-Like stat, but on a file descriptor
+Like stat, but on a file handle
 
-=item rename($oname,$nname)
+=item rename OLDNAME,NEWNAME
 
-Rename $oname in  $nname. Return 1 on success, else 0 is return
-and errno and $! is set.
+Changes the name of a file; an existing file NEWNAME will be clobbered.
+Returns true for success, false otherwise, with $! set.
 
 Example:
 
   $smb->rename("smb://jupiter/doc/toto","smb://jupiter/doc/tata")
-    || print "Can't rename file:", $!, "\n";
-  
+    or print "Can't rename file:", $!, "\n";
 
-=item unlink($fname)
+=item unlink FILENAME
 
-Unlink $fname. Return 1 on success, else 0 is return
+Unlink FILENAME. Return 1 on success, else 0 is return
 and errno and $! is set.
 
 Example:
 
   $smb->unlink("smb://jupiter/doc/test") 
-    || print "Can't unlink file:", $!, "\n";
+    or print "Can't unlink file:", $!, "\n";
 
 
-=item open($fname, $mode)
+=item open FILENAME
+
+=item open FILENAME, MODE
 
 Open file $fname with perm $mode. Return file descriptor
 on success, else 0 is return and $! is set.
@@ -502,37 +697,56 @@ on success, else 0 is return and $! is set.
 Example:
 
   my $fd = $smb->open("smb://jupiter/doc/test", 0666) 
-    || print "Can't read file:", $!, "\n";
+    or print "Can't read file:", $!, "\n";
 
   my $fd = $smb->open(">smb://jupiter/doc/test", 0666) 
-    || print "Can't create file:", $!, "\n";
+    or print "Can't create file:", $!, "\n";
 
   my $fd = $smb->open(">>smb://jupiter/doc/test", 0666) 
-    || print "Can't append to file:", $!, "\n";
+    or print "Can't append to file:", $!, "\n";
 
+=item read FILEHANDLE
 
-=item read($fd,$count)
+=item read FILEHANDLE, LENGTH
 
-Read $count bytes of data on file descriptor $fd. Return buffer read on
-success, undef at end of file, -1 is return on error and $! is set.
+Read $count bytes of data on file descriptor $fd. It lenght is not set,
+4096 bytes will be read.
 
-=item write($fd, $buf, [$length])
+Return buffer read on success, undef at end of file,
+-1 is return on error and $! is set.
 
-Write $length bytes of $buf on file descriptor $fd. 
+FILEHANDLE must be open with open of this module.
+
+=item write FILEHANDLE, $buf
+
+=item write FILEHANDLE, @buf
+
+Write $buf or @buf on file descriptor $fd.
 Return number of bytes wrote, else -1 is return and errno and $! is set.
-If $length is null, length($buf) is used
 
 Example:
 
   my $fd = $smb->open(">smb://jupiter/doc/test", 0666) 
-    || print "Can't create file:", $!, "\n";
+    or print "Can't create file:", $!, "\n";
   $smb->write($fd, "A test of write call") 
-    || print $!,"\n";
+    or print $!,"\n";
   $smb->close($fd);
 
-=item close($fd)
+FILEHANDLE must be open with open of this module.
 
-Close file descriptior $fd. Return 0 on success, else -1 is return and
+=item seek FILEHANDLE, POS
+
+Sets FILEHANDLE's position, just like the "fseek"
+call of "stdio".  FILEHANDLE may be an expression
+whose value gives the name of the filehandle.  The
+values for WHENCE is always SEEK_SET beacause others
+didn't work on libsmbclient.so
+
+FILEHANDLE must be open with open of this module.
+
+=item close FILEHANDLE
+
+Close file FILEHANDLE. Return 0 on success, else -1 is return and
 errno and $! is set.
 
 =back
@@ -541,13 +755,13 @@ errno and $! is set.
 
 =over
 
-=item unlink_print_job($purl, $id)
+=item unlink_print_job PRINTER_URL, IDJOB
 
-Remove job number $id on printer $purl
+Remove job number IDJOB on printer PRINTER_URL
 
-=item print_file($purl, $printer)
+=item print_file DOCUMENT_URL, PRINTER_URL
 
-Print file $purl on $printer
+Print file DOCUMENT_URL on PRINTER_URL
 
 =back
 
@@ -575,23 +789,19 @@ telldir
 
 lseekdir
 
-=item *
-
-lseek
-
 =back
 
 =head1 EXAMPLE
 
-This module come with two scripts:
+This module come with some scripts:
 
 =over
 
-=item test.pl 
+=item t/*.t
 
 Just for check that this module is ok :-)
 
-=item smb2www-2.cgi 
+=item smb2www-2.cgi
 
 A CGI interface with these features:
 

@@ -4,15 +4,15 @@
 # with Filesys::SmbClient and libsmclient.so
 # Copyright 2001 A.Barbet alian@alianwebserver.com.  All rights reserved.
 #
-# $Revision: 1.4 $
-# $Date: 2002/01/05 14:03:58 $
+# $Revision: 1.5 $
+# $Date: 2002/10/18 13:02:09 $
 # $Author: alian $
 #------------------------------------------------------------------------------
 
-use Filesys::SmbClient;
 use CGI qw/:standard :html3 :netscape escape unescape/;
 use CGI::Carp qw/fatalsToBrowser/;
 use strict;
+use Filesys::SmbClient;
 
 # ------ Config --------------------------------------------------------------#
 my $SN = $ENV{SCRIPT_NAME} || "smb2www-2.cgi";

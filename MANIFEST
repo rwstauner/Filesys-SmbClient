@@ -7,8 +7,11 @@ MANIFEST
 Makefile.PL
 SmbClient.pm
 SmbClient.xs
-test.pl
 libauthSamba.c
 libauthSamba.h
 smb2www-2.cgi
 smb2www.css
+t/01base.t
+t/02tie.t
+t/03tie_perl56.t
+typemap

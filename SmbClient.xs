@@ -360,6 +360,28 @@ _write(fd,buf,count)
     OUTPUT:
       RETVAL
 
+int 
+_lseek(fd,offset,whence)
+  int fd
+  int offset
+  int whence
+    CODE:
+      RETVAL=smbc_lseek(fd,offset,whence);
+#ifdef VERBOSE
+       	if (RETVAL < 0) { 
+ 	  if (RETVAL == EBADF) 
+	    fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+                            "lseek fd not open\n");
+          else if (RETVAL == EINVAL) 
+	    fprintf(stderr, "*** Debug Filesys::SmbClient *** :"
+		 	    "smbc_init not called or fd not a filehandle\n");
+	   else fprintf(stderr, "*** Debug Filesys::SmbClient *** :"
+		    	        "write %d : %s\n", fd, strerror(errno)); 
+	}
+#endif
+    OUTPUT:
+      RETVAL
+
 
 int
 _close(fd)
