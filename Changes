@@ -35,3 +35,17 @@ Revision history for Perl extension Filesys::SmbClient.
 	+ Add comment for temporay hack in $HOME/.smb/smb.conf
 	+ Set $ENV['HOME'} to /tmp if unset
 	+ Add smb2www-2.cgi
+
+0.8  2002/01/04 21:23:05  alian
+	+ Add defaut size for buf to write in write method (last param is now
+	optionnal)
+	+ Update POD documentation
+	+ For smb2www.cgi:
+		- Add feature for workgroup browsing
+		- Add a header link for navigate between part of current dir
+		- Add comment for share
+		- Add sort of listing
+		- Add some css example
+		- Display size in o, Ko, Mo, Go
+		- Add back after delete
+		

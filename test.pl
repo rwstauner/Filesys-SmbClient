@@ -46,8 +46,7 @@ if (-e ".c") {
     || print "not ok 3 Create file:", $!, "\n";
   if ($fd)
     {
-	if ($smb->write($fd,"A test of write call",
-			    length("A test of write call")))
+	if ($smb->write($fd,"A test of write call"))
 	  { print "ok 3 Create file\n";  $courant++;}
 	else { print "not ok 3 Create file $!\n"; }
 	$smb->close($fd);

@@ -62,7 +62,6 @@ _mkdir(fname,mode)
       RETVAL
 
 
-
 int
 _rmdir(fname)
   char *fname
@@ -126,16 +125,18 @@ _readdir(fd)
     	INIT:
 /* 
  * _readdir(int fd) : Read file descriptor for directory fd and return file
- *                    name and type
+ *                    type, name and comment
  *
  */
-       		struct smbc_dirent *dirp;
+	struct smbc_dirent *dirp;
+
     	PPCODE:
          dirp = (struct smbc_dirent *)smbc_readdir(fd);
          if (dirp)
           {
           XPUSHs(sv_2mortal(newSVnv(dirp->smbc_type)));
-          XPUSHs(sv_2mortal((SV*)newSVpv(dirp->name,strlen(dirp->name))));
+          XPUSHs(sv_2mortal((SV*)newSVpv(dirp->name, dirp->namelen)));
+          XPUSHs(sv_2mortal((SV*)newSVpv(dirp->comment, dirp->commentlen)));
           }
 
 

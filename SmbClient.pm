@@ -5,6 +5,10 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 0.8  2002/01/04 21:23:05  alian
+# - Add defaut param for size of buf to put in write method
+# - Update POD documentation
+#
 # Revision 0.7  2002/01/03 10:42:51  alian
 # - Add comment for temporay hack in $HOME/.smb/smb.conf
 # - Set $ENV['HOME'} to /tmp if unset
@@ -58,7 +62,7 @@ require AutoLoader;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK);
-$VERSION = ('$Revision: 0.7 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 0.8 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -77,7 +81,6 @@ my %commandes =
    "read"             => \&_read,
    "unlink"           => \&_unlink,
    "unlink_print_job" => \&_unlink_print_job,
-   "write"            => \&_write,
   );
 
 #------------------------------------------------------------------------------
@@ -148,9 +151,9 @@ sub readdir_struct
   my $self=shift;
   if (wantarray())
     {
-    my @tab;
-    while (my @l  = _readdir($_[0])) {push(@tab,\@l);}
-    return @tab;
+	my @tab;
+	while (my @l  = _readdir($_[0])) { push(@tab,\@l); }
+	return @tab;
     }
   else {my @l = _readdir($_[0]);return \@l if (@l);}
   }
@@ -170,6 +173,17 @@ sub readdir
   else {my @l =_readdir($_[0]);return $l[1];}
   }
 
+#------------------------------------------------------------------------------
+# write
+#------------------------------------------------------------------------------
+sub write
+  {
+    my $self=shift;
+    my $fd = shift;
+    my $buffer = shift;
+    my $lg = ( ($_[0]) ? shift : length($buffer) );
+    _write($fd, $buffer, $lg);
+  }
 1;
 __END__
 
@@ -214,7 +228,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 0.7 $
+$Revision: 0.8 $
 
 =head1 FONCTIONS
 
@@ -302,7 +316,7 @@ Example:
 
 Read a directory. In a list context, return the full content of
 the directory $fd, else return next element. Each element
-is a ref to an array with type and name. Type can be :
+is a ref to an array with type, name and comment. Type can be :
 
 =over
 
@@ -470,16 +484,17 @@ Example:
 Read $count bytes of data on file descriptor $fd. Return buffer read on
 success, undef at end of file, -1 is return on error and $! is set.
 
-=item write($fd,$buf)
+=item write($fd, $buf, [$length])
 
-Write $buf on file descriptor $fd. Return number of bytes wrote, else -1
-is return and errno and $! is set.
+Write $length bytes of $buf on file descriptor $fd. 
+Return number of bytes wrote, else -1 is return and errno and $! is set.
+If $length is null, length($buf) is used
 
 Example:
 
   my $fd = $smb->open(">smb://jupiter/doc/test", 0666) 
     || print "Can't create file:", $!, "\n";
-  $smb->write($fd,"A test of write call", length("A test of write call")) 
+  $smb->write($fd, "A test of write call") 
     || print $!,"\n";
   $smb->close($fd);
 
