@@ -1,0 +1,14 @@
+README
+Changes
+MANIFEST
+Makefile.PL
+SmbClient.pm
+SmbClient.xs
+test.pl
+lib/libauthSamba.c
+lib/libauthSamba.h
+lib/Makefile.PL
+
+
+
+

@@ -1,0 +1,43 @@
+WHAT IS THIS ?
+
+This is for Filesys::SmbClient, a module which
+provide routine for access Samba filesystem 
+with libsmclient.so
+
+On 2000/12/28, this library is only available 
+with CVS source of Samba (target head), See on 
+samba.org web site, section developpement.
+
+This release is a beta release, and today
+implementation of smbclient.so is not finish !
+
+HOW DO I INSTALL IT ?
+
+To install this module, cd to the directory that contains
+this README file and type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+REQUIREMENT ? 
+
+libsmbclient.so, this is the client library part of Samba project.
+
+DOCUMENTATION ?
+
+You'll find verbose documentation in the file
+SmbClient.pm in POD format
+
+When you install Filesys::SmbClient, the MakeMaker program
+will automatically install the manual pages for you
+(on Unix systems, type "man Filesys::SmbClient").
+
+Have fun, and let me know how it turns out!
+
+Alain BARBET
+alian@alianwebserver.com
+
+
+
