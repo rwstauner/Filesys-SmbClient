@@ -5,14 +5,14 @@ WriteMakefile(
     'LIBS'  => ['-lsmbclient'],
     'DEFINE'  => '',
     'INC'  => '',
-    'MYEXTLIB' =>'auth/libAuthSamba$(LIB_EXT)'
+    'MYEXTLIB' =>'lib/libAuthSamba$(LIB_EXT)'
 );
 
 
 sub MY::postamble {
         '
-$(MYEXTLIB): auth/Makefile
-	cd auth && $(MAKE) $(PASSTHRU)
+$(MYEXTLIB): lib/Makefile
+	cd lib && $(MAKE) $(PASSTHRU)
         ';
         }
 

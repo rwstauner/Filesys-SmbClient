@@ -5,6 +5,15 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 0.3  2001/08/04 15:30:20  alian
+# - Update for version 2.2.1 of Samba
+# - Update POD documentation
+# - Add fstat, rmdir, unlink_print_job, print_file method
+# - Update return code to use Perl style
+# - Add TODO section
+# - Update read routine to remove memory leak
+# - Change parameters for constructor of Filesys::SmbClient : see POD doc
+#
 # Revision 0.2  2001/01/21 00:38:28  alian
 # + Update for version 1.10 of libsmbclient.c
 # + Provide readdir routines
@@ -31,26 +40,33 @@ require AutoLoader;
 
 @ISA = qw(Exporter DynaLoader);
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
-                             SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
-                             SMBC_LINK);
-$VERSION = ('$Revision: 0.2 $ ' =~ /(\d+\.\d+)/)[0];
+	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
+	     SMBC_LINK);
+$VERSION = ('$Revision: 0.3 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
 my %commandes =
   (
-  "mkdir"     => \&_mkdir,
-  "unlink"     =>\&_unlink,
-  "stat"        =>\&_stat,
-  "rename" =>\&_rename,
-  "open"     =>\&_open,
-  "opendir"=>\&_opendir,
-  "read"      =>\&_read,
-  "write"      =>\&_write,
-  "close"     =>\&_close,
-  "closedir"=>\&_closedir,
+   "close"            => \&_close,
+   "closedir"         => \&_closedir,
+   "fstat"            => \&_fstat,
+   "mkdir"            => \&_mkdir,
+   "open"             => \&_open,
+   "opendir"          => \&_opendir,
+   "print_file"       => \&_print_file,
+   "stat"             => \&_stat,
+   "rename"           => \&_rename,
+   "rmdir"            => \&_rmdir,
+   "read"             => \&_read,
+   "unlink"           => \&_unlink,
+   "unlink_print_job" => \&_unlink_print_job,
+   "write"            => \&_write,
   );
 
+#------------------------------------------------------------------------------
+# AUTOLOAD
+#------------------------------------------------------------------------------
 sub AUTOLOAD
   {
   my $self =shift;
@@ -61,17 +77,38 @@ sub AUTOLOAD
   return $commandes{$attr}->(@_);
   }
 
+#------------------------------------------------------------------------------
+# new
+#------------------------------------------------------------------------------
+sub new 
+  {
+    my $class = shift;
+    my $self = {};
+    my @l; 
+    bless $self, $class;
+    if (@_)
+      {
+	my %vars =@_;
+	if (!$vars{'workgroup'}) { $vars{'workgroup'}=""; }
+	if (!$vars{'username'})  { $vars{'username'}=""; }
+	if (!$vars{'password'})  { $vars{'password'}=""; }
+	if (!$vars{'debug'})     { $vars{'debug'}=0; }
+	push(@l, $vars{'username'});
+	push(@l, $vars{'password'});
+	push(@l, $vars{'workgroup'});
+	push(@l, $vars{'debug'});
+      }    
+    else { @l =("","","",0); }
+    my $ret = _init(@l);
+    if ($ret <0)
+      {die 'You must have a samba configuration file '.
+	 '($HOME/.smb/smb.conf , even if it is empty';}
+    return $self;
+  }
 
-sub new {
-        my $class = shift;
-        my $self = {};
-        bless $self, $class;
-        my $ret = _init($_[0],$_[1]);
-        if ($ret <0)
-          {die 'You must have a samba configuration file ($HOME/.smb/smb.conf or /etc/smb.conf), even if it is empty';}
-        return $self;
-        }
-
+#------------------------------------------------------------------------------
+# readdir_struct
+#------------------------------------------------------------------------------
 sub readdir_struct
   {
   my $self=shift;
@@ -84,6 +121,9 @@ sub readdir_struct
   else {my @l = _readdir($_[0]);return \@l if (@l);}
   }
 
+#------------------------------------------------------------------------------
+# readdir
+#------------------------------------------------------------------------------
 sub readdir
   {
   my $self=shift;
@@ -102,60 +142,35 @@ __END__
 
 =head1 NAME
 
-Filesys::SmbClient - Perl extension for access Samba filesystem with libsmclient.so
+Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so
 
 =head1 SYNOPSIS
 
   use POSIX;
-  use Filesys::SmbClient;
+  use Filesys::SmbClient;  
 
-  my $smb = new Filesys::SmbClient("alian",10);
-
-  # Read a directory
-  my $fd = $smb->opendir("smb://jupiter/doc");
-  while ($smb->readdir($fd)) {print $_,"\n";}
-  close($fd);
-
-  # Read long info on a directory
-  my $fd = $smb->opendir("smb://jupiter/doc");
-  while (my $f = $smb->readdir_struct($fd))
-    {
-    if ($f->[0] == SMBC_DIR) {print "Directory ",$f->[1],"\n";}
-    elsif ($f->[0] == SMBC_FILE) {print "File ",$f->[1],"\n";}
-    # ...
-    }
-  close($fd);
-
-  # Create a directory
-  $smb->mkdir("smb://jupiter/doc/toto",'0666');
-
+  my $smb = new Filesys::SmbClient(username  => "alian",
+				   password  => "speed", 
+				   workgroup => "alian",
+				   debug     => 10);  
+    
   # Read a file
-  my $fd = $smb->open("smb://jupiter/doc/toto",O_RDONLY,'0666');
+  my $fd = $smb->open("smb://jupiter/doc/general.css",O_RDONLY,'0666');
   while (defined(my $l= $smb->read($fd,50))) {print $l; }
-  $smb->close(fd);
+  $smb->close(fd);  
 
-  # Write a file
-  my $fd = $smb->open("smb://jupiter/doc/test",O_CREAT, 0666);
-  $smb->write($fd,"A test of write call") || print $!,"\n";
-  $smb->close(fd);
-
-  # Rename a file
-  $smb->rename("smb://jupiter/doc/toto","smb://jupiter/doc/tata"),"\n";
-
-  # Delete a file
-  $smb->unlink("smb://jupiter/doc/test");
-
-  # Stat a file
-  my @tab = $smb->stat("smb://jupiter/doc/tata");
-  for (10..12) {$tab[$_] = localtime($tab[$_]);}
-  print join("\n",@tab);
-
+  # ...
 
 =head1 DESCRIPTION
 
 Provide interface to access routine defined in libsmbclient.so.
-On 2001/01/21, this library is only available with CVS source of Samba (target head),
-See on samba.org web site, section download. This module is a beta version !
+
+On 2001/08/05, this library is available on Samba source, but is not
+build by default. (release 2.2.1).
+Do "make bin/libsmbclient.so" in sources directory of Samba to build 
+this libraries. Then copy source/include/libsmbclient.h
+and source/bin/libsmbclient.so where you need them before install this
+module.
 
 When a path is used, his scheme is :
 
@@ -163,20 +178,45 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 0.2 $
+$Revision: 0.3 $
 
 =head1 FONCTIONS
 
 =over
 
-=item new($wgroup,$debug)
+=item new(%hash)
 
-Init some things
+Init connection
+Hash can have this keys:
 
-  $wgroup : Current workgroup
-  $debug : level of debug
+=over
 
-Return 0 on succes, errno else.
+=item *
+
+username
+
+=item *
+
+password
+
+=item * 
+
+workgroup
+
+=item *
+
+debug
+
+=back
+
+Return instance of Filesys::SmbClient on succes, die with error else.
+
+Example:
+
+  my $smb = new Filesys::SmbClient(username  => "alian",
+				   password  => "speed", 
+				   workgroup => "alian",
+				   debug     => 10);
 
 =back
 
@@ -186,7 +226,23 @@ Return 0 on succes, errno else.
 
 =item mkdir($fname,$mode)
 
-Create directory $fname with permissions set to $mode
+Create directory $fname with permissions set to $mode.
+Return 1 on success, else 0 is return and errno and $! is set.
+
+Example:
+
+  $smb->mkdir("smb://jupiter/doc/toto",'0666') 
+    || print "Error mkdir: ", $!, "\n";
+
+=item rmdir($fname)
+
+Erase directory $fname. Return 1 on success, else 0 is return
+and errno and $! is set.
+
+Example:
+
+  $smb->rmdir("smb://jupiter/doc/toto")
+    || print "Error rmdir: ", $!, "\n";
 
 =item opendir($fname)
 
@@ -200,13 +256,17 @@ a name of a directory or files.
 
 Return undef at end of directory.
 
+Example:
+
+  my $fd = $smb->opendir("smb://jupiter/doc");
+  foreach my $n ($smb->readdir($fd)) {print $n,"\n";}
+  close($fd);
+
 =item readdir_struct($fd)
 
 Read a directory. In a list context, return the full content of
 the directory $fd, else return next element. Each element
 is a ref to an array with type and name. Type can be :
-
-Return undef at end of directory.
 
 =over
 
@@ -230,6 +290,19 @@ Return undef at end of directory.
 
 =back
 
+Return undef at end of directory.
+
+Example:
+
+  my $fd = $smb->opendir("smb://jupiter/doc");
+  while (my $f = $smb->readdir_struct($fd))
+    {
+    if ($f->[0] == SMBC_DIR) {print "Directory ",$f->[1],"\n";}
+    elsif ($f->[0] == SMBC_FILE) {print "File ",$f->[1],"\n";}
+    # ...
+    }
+  close($fd);
+
 =item closedir($fd)
 
 Close directory $fd.
@@ -240,16 +313,12 @@ Close directory $fd.
 
 =over
 
-=item unlink($fname)
-
-Delete file $fname
-
-Return 0 on succes, errno else.
-
 =item stat($fname)
 
-Stat a file to get info via file $fname. Return a array with info on
-success, else errno is return and $! is set. Tab is made with:
+Stat a file to get info via file $fname. Return a list with info on
+success, else an empty list is return and $! is set. 
+
+List is made with:
 
 =over
 
@@ -307,32 +376,121 @@ time of last change
 
 =back
 
-=cut
+Example:
+
+  my @tab = $smb->stat("smb://jupiter/doc/tata");
+  if ($#tab == 0) { print "Erreur in stat:", $!, "\n"; }
+  else
+    {
+      for (10..12) {$tab[$_] = localtime($tab[$_]);}
+      print join("\n",@tab);
+    }
+
+=item fstat($fd)
+
+Like stat, but on a file descriptor
 
 =item rename($oname,$nname)
 
-Rename $oname in  $nname. Return 0 on success, else -1 is return
+Rename $oname in  $nname. Return 1 on success, else 0 is return
 and errno and $! is set.
+
+Example:
+
+  $smb->rename("smb://jupiter/doc/toto","smb://jupiter/doc/tata")
+    || print "Can't rename file:", $!, "\n";
+  
+
+=item unlink($fname)
+
+Unlink $fname. Return 1 on success, else 0 is return
+and errno and $! is set.
+
+Example:
+
+  $smb->unlink("smb://jupiter/doc/test") 
+    || print "Can't unlink file:", $!, "\n";
+
 
 =item open($fname, $flags, $mode)
 
 Open file $fname with flags $flags and mode $mode. Return file descriptor
-on success, else -1 is return and errno and $! is set.
+on success, else 0 is return and $! is set.
+
+Example:
+
+  my $fd = $smb->open("smb://jupiter/doc/test",O_CREAT, 0666) 
+    || print "Can't create file:", $!, "\n";
 
 =item read($fd,$count)
 
 Read $count bytes of data on file descriptor $fd. Return buffer read on
 success, undef at end of file, -1 is return on error and $! is set.
 
-=item write($fd,$buf)
+=item write($fd,$buf) DIDN'T WORK TODAY !
 
 Write $buf on file descriptor $fd. Return number of bytes wrote, else -1
 is return and errno and $! is set.
+
+Example:
+
+  my $fd = $smb->open("smb://jupiter/doc/test",O_CREAT, 0666) 
+    || print "Can't create file:", $!, "\n";
+  $smb->write($fd,"A test of write call") || print $!,"\n";
+  $smb->close($fd);
 
 =item close($fd)
 
 Close file descriptior $fd. Return 0 on success, else -1 is return and
 errno and $! is set.
+
+=back
+
+=head2 Print method
+
+=over
+
+=item unlink_print_job($purl, $id)
+
+Remove job number $id on printer $purl
+
+=item print_file($purl, $printer)
+
+Print file $purl on $printer
+
+=back
+
+=head1 TODO
+
+=over 
+
+=item *
+
+chown
+
+=item *
+
+chmod
+
+=item *
+
+open_print_job
+
+=item *
+
+telldir
+
+=item *
+
+lseekdir
+
+=item *
+
+lseek
+
+=item *
+
+write method to debug
 
 =back
 

@@ -7,3 +7,13 @@ Revision history for Perl extension Filesys::SmbClient.
  	+ Update for version 1.10 of libsmbclient.c
  	+ Provide readdir routines
  	+ Add pod documentation
+
+
+0.3  2001/08/04 15:30:20  alian
+ 	+ Update for version 2.2.1 of Samba
+  	+ Update POD documentation
+ 	+ Add fstat, rmdir, unlink_print_job, print_file method
+	+ Update return code to use Perl style
+	+ Add TODO section
+	+ Update read routine to remove memory leak
+	+ Change parameters for constructor of Filesys::SmbClient : see POD doc

@@ -1,7 +1,7 @@
 use ExtUtils::MakeMaker;
+$Verbose = 1;
 WriteMakefile(
-            NAME   => 'Filesys::Smbclient::lib',
-            SKIP   => [qw(all static static_lib dynamic dynamic_lib)],
+            NAME   => 'Filesys::Smbclient::libauthSamba',
             clean  => {'FILES' => 'libAuthSamba$(LIB_EXT)'},
         );        
 
