@@ -2,7 +2,7 @@
 #include "perl.h"
 #include "XSUB.h"
 #include "libsmbclient.h"
-#include "auth.h"
+#include "auth/libauthSamba.h"
 
 MODULE = Filesys::SmbClient    PACKAGE = Filesys::SmbClient
 PROTOTYPES: ENABLE
@@ -81,16 +81,53 @@ _rename(oname,nname)
       RETVAL
 
 int
+_opendir(fname)
+  char *fname
+    CODE:
+      fprintf(stderr, "Opendir %s\n", fname);
+      RETVAL = smbc_opendir(fname);
+      if (RETVAL<0) {fprintf(stderr, "Error opendir %s : %s\n", fname, strerror(errno));}
+    OUTPUT:
+      RETVAL
+
+int
+_closedir(fd)
+  int fd
+    CODE:
+      RETVAL = smbc_closedir(fd);
+      if (RETVAL < 0)
+        {
+        fprintf(stderr, "Closedir : %s\n", strerror(errno));
+        }
+    OUTPUT:
+      RETVAL
+
+void
+_readdir(fd)
+  int fd
+    INIT:
+       struct smbc_dirent *dirp;
+    PPCODE:
+        dirp = (struct smbc_dirent *)smbc_readdir(fd);
+        if (dirp)
+          {
+          XPUSHs(sv_2mortal(newSVnv(dirp->smbc_type)));
+          XPUSHs(sv_2mortal(newSVpv(dirp->name,0)));
+          }
+
+int
 _open(fname, flags, mode)
   char *fname
   int flags
   int mode
     CODE:
-      RETVAL = smbc_open(fname,flags,mode);
-      if (RETVAL < 0)
+      int rep = smbc_open(fname,flags,mode);
+      fprintf(stderr, "coucou\n");
+      if (rep < 0)
         {
         fprintf(stderr, "Open %s : %s\n", fname, strerror(errno));
         }
+        RETVAL=rep;
     OUTPUT:
       RETVAL
 

@@ -5,10 +5,6 @@ Makefile.PL
 SmbClient.pm
 SmbClient.xs
 test.pl
-lib/libauthSamba.c
-lib/libauthSamba.h
-lib/Makefile.PL
-
-
-
-
+auth/libauthSamba.c
+auth/libauthSamba.h
+auth/Makefile.PL

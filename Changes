@@ -3,3 +3,7 @@ Revision history for Perl extension Filesys::SmbClient.
 0.1  Tue Dec 26 15:56:58 2000
 	- original version; created by h2xs 1.19
 
+0.2  2001/01/21 00:38:28  alian
+ 	+ Update for version 1.10 of libsmbclient.c
+ 	+ Provide readdir routines
+ 	+ Add pod documentation

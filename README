@@ -4,7 +4,7 @@ This is for Filesys::SmbClient, a module which
 provide routine for access Samba filesystem 
 with libsmclient.so
 
-On 2000/12/28, this library is only available 
+On 2001/01/21, this library is only available 
 with CVS source of Samba (target head), See on 
 samba.org web site, section developpement.
 
