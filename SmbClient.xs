@@ -1,9 +1,9 @@
+#pragma alloca
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
 #include "libsmbclient.h"
 #include "lib/libauthSamba.h"
-#define VERBOSE 1
 
 /* 
  * Ce fichier definit les fonctions d'interface avec libsmbclient.so 
@@ -76,7 +76,7 @@ _rmdir(fname)
         {
 	RETVAL = 0;
 #ifdef VERBOSE
-	fprintf(stderr, "mkdir %s directory : %s\n", fname,strerror(errno));
+	fprintf(stderr, "rmdir %s directory : %s\n", fname,strerror(errno));
 #endif
 	}
        else RETVAL = 1;
@@ -233,23 +233,43 @@ _rename(oname,nname)
 
 
 int
-_open(fname, flags, mode)
+_open(fname, mode)
   char *fname
-  int flags
   int mode
     CODE:
 /* 
- * _open(fname, flags, mode): Open file fname with flags and perm mode
+ * _open(fname, mode): Open file fname with perm mode
  *
- */
-      RETVAL = smbc_open(fname, flags, mode);
+ */	
+	int flags; int seek_end = 0;
+	/* Mode >> */
+	if ( (*fname != '\0') && (*(fname+1) != '\0') &&
+		    (*fname == '>') && (*(fname+1) == '>'))
+		{ 
+			flags = O_WRONLY | O_CREAT | O_APPEND; 
+			fname+=2; 
+			seek_end = 1;
+#ifdef VERBOSE
+			fprintf(stderr, "Open append %s : %s\n", fname); 
+#endif
+		}
+	/* Mode > */
+	else if ( (*fname != '\0') && (*fname == '>')) 
+		{ flags = O_WRONLY | O_CREAT | O_TRUNC; fname++; }
+	/* Mode < */
+	else if ( (*fname != '\0') && (*fname == '<')) 
+		{ flags = O_RDONLY; fname++; }
+	/* Mod < */
+	else flags =  O_RDONLY;
+      RETVAL = smbc_open(fname,flags, mode);	
       if (RETVAL < 0)
         { 
 	RETVAL = 0;
 #ifdef VERBOSE
 	fprintf(stderr, "Open %s : %s\n", fname, strerror(errno)); 
 #endif
-	}	
+	}
+	else if (seek_end) { smbc_lseek(RETVAL, 0, SEEK_END); }
     OUTPUT:
       RETVAL
 
@@ -263,8 +283,9 @@ _read(fd,count)
  * _read(fd, count): Read count bytes on file descriptor fd
  *
  */
-     char buf[count+1];
+     char *buf;
      int returnValue;
+     buf = (char*)alloca(sizeof(char)*(count+1));
      returnValue = smbc_read(fd,buf,count);
      buf[returnValue]='\0';
 #ifdef VERBOSE
@@ -277,17 +298,18 @@ _read(fd,count)
       RETVAL
 
 int
-_write(fd,buf)
+_write(fd,buf,count)
   int fd
   char *buf
+  int count
     CODE:
 /* 
- * _write(fd, buf): Write buf on file descriptor fd
+ * _write(fd, buf, lenght): Write buf on file descriptor fd
  *
  */
-      RETVAL=smbc_write(fd,buf,sizeof(buf));
+      RETVAL=smbc_write(fd,buf,count);
 #ifdef VERBOSE
-	fprintf(stderr, "write %s\n", buf);	
+	fprintf(stderr, "write %d bytes: %s\n",count, buf);	
        	if (RETVAL < 0)
         { 
 	if (RETVAL == EBADF) 

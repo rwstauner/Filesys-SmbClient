@@ -17,3 +17,12 @@ Revision history for Perl extension Filesys::SmbClient.
 	+ Add TODO section
 	+ Update read routine to remove memory leak
 	+ Change parameters for constructor of Filesys::SmbClient : see POD doc
+
+0.4  2001/10/22	12:58:34 alian
+	+ Update Makefile.PL to find needed file
+	+ Update make test target to do real rest
+	+ Debug write method. All method ok
+
+0.5  2001/10/22 155555:39:36 alian
+	+ Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
+	(else libsmbclient.so will segfault !)

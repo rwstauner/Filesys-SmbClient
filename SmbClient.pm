@@ -5,6 +5,14 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 0.5  2001/10/22 12:39:36  alian
+# - Add behaviour to create an empty $HOME/.smb/smb.conf file if not exist
+# (else libsmbclient.so will segfault !)
+#
+# Revision 0.4  2001/10/22 10:58:38  alian
+# - Mise a jour de la documentation pour le nouveau format de open
+# - Suppression d'une trace oubliee
+#
 # Revision 0.3  2001/08/04 15:30:20  alian
 # - Update for version 2.2.1 of Samba
 # - Update POD documentation
@@ -42,7 +50,7 @@ require AutoLoader;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK);
-$VERSION = ('$Revision: 0.3 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 0.5 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -99,6 +107,15 @@ sub new
 	push(@l, $vars{'debug'});
       }    
     else { @l =("","","",0); }
+    if (!-e "$ENV{HOME}/.smb/smb.conf")
+	{
+	  print STDERR "you don't have a $ENV{HOME}/.smb/smb.conf, ",
+	    "I will create it (empty file)\n";
+	  mkdir "$ENV{HOME}/.smb" unless (-e "$ENV{HOME}/.smb");
+	  open(F,">$ENV{HOME}/.smb/smb.conf") || 
+	    die "Can't create $ENV{HOME}/.smb/smb.conf : $!\n";
+	  close(F);
+	}
     my $ret = _init(@l);
     if ($ret <0)
       {die 'You must have a samba configuration file '.
@@ -155,11 +172,13 @@ Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so
 				   debug     => 10);  
     
   # Read a file
-  my $fd = $smb->open("smb://jupiter/doc/general.css",O_RDONLY,'0666');
+  my $fd = $smb->open("smb://jupiter/doc/general.css", '0666');
   while (defined(my $l= $smb->read($fd,50))) {print $l; }
   $smb->close(fd);  
 
   # ...
+
+There is some others examples in test.pl file
 
 =head1 DESCRIPTION
 
@@ -178,7 +197,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 0.3 $
+$Revision: 0.5 $
 
 =head1 FONCTIONS
 
@@ -412,31 +431,39 @@ Example:
     || print "Can't unlink file:", $!, "\n";
 
 
-=item open($fname, $flags, $mode)
+=item open($fname, $mode)
 
-Open file $fname with flags $flags and mode $mode. Return file descriptor
+Open file $fname with perm $mode. Return file descriptor
 on success, else 0 is return and $! is set.
 
 Example:
 
-  my $fd = $smb->open("smb://jupiter/doc/test",O_CREAT, 0666) 
+  my $fd = $smb->open("smb://jupiter/doc/test", 0666) 
+    || print "Can't read file:", $!, "\n";
+
+  my $fd = $smb->open(">smb://jupiter/doc/test", 0666) 
     || print "Can't create file:", $!, "\n";
+
+  my $fd = $smb->open(">>smb://jupiter/doc/test", 0666) 
+    || print "Can't append to file:", $!, "\n";
+
 
 =item read($fd,$count)
 
 Read $count bytes of data on file descriptor $fd. Return buffer read on
 success, undef at end of file, -1 is return on error and $! is set.
 
-=item write($fd,$buf) DIDN'T WORK TODAY !
+=item write($fd,$buf)
 
 Write $buf on file descriptor $fd. Return number of bytes wrote, else -1
 is return and errno and $! is set.
 
 Example:
 
-  my $fd = $smb->open("smb://jupiter/doc/test",O_CREAT, 0666) 
+  my $fd = $smb->open(">smb://jupiter/doc/test", 0666) 
     || print "Can't create file:", $!, "\n";
-  $smb->write($fd,"A test of write call") || print $!,"\n";
+  $smb->write($fd,"A test of write call", length("A test of write call")) 
+    || print $!,"\n";
   $smb->close($fd);
 
 =item close($fd)
@@ -487,10 +514,6 @@ lseekdir
 =item *
 
 lseek
-
-=item *
-
-write method to debug
 
 =back
 
