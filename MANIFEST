@@ -1,3 +1,6 @@
+config.h.in
+configure
+configure.in
 README
 Changes
 MANIFEST

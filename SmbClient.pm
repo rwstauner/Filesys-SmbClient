@@ -5,6 +5,15 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 1.1  2002/02/24 09:55:20  alian
+# - Update to 1.1 release. With autoconf and last test, this release can be
+# see as first stable tested release.
+#
+# Revision 0.10  2002/02/24 09:53:32  alian
+# - Fix a bug in open that can cause segfault if file is not found
+# - Add include for autoconf file
+# - Update DEBUG syntax
+#
 # Revision 0.9  2002/01/05 14:06:58  alian
 # - Add rmdir_recurse method
 # - Update POD documentation for change in opendir return on error
@@ -46,7 +55,7 @@ require AutoLoader;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK);
-$VERSION = ('$Revision: 0.9 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 1.1 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -235,7 +244,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 0.9 $
+$Revision: 1.1 $
 
 =head1 FONCTIONS
 

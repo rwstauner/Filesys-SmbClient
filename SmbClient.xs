@@ -1,4 +1,19 @@
-#pragma alloca
+#include "config.h"
+/* AIX requires this to be the first thing in the file.  */
+#ifndef __GNUC__
+# if HAVE_ALLOCA_H
+#  include <alloca.h>
+# else
+#  ifdef _AIX
+ #pragma alloca
+#  else
+#   ifndef alloca /* predefined by HP cc +Olibcalls */
+char *alloca ();
+#   endif
+#  endif
+# endif
+#endif
+
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -18,6 +33,7 @@ _init(user, password, workgroup, debug)
   char *password  
   char* workgroup
   int debug
+
     CODE:
 /* 
  * Initialize things ... 
@@ -30,7 +46,8 @@ _init(user, password, workgroup, debug)
 	RETVAL = 0;
 #ifdef VERBOSE
 	fprintf(stderr, 
-		"Initializing the smbclient library ...: %s\n", 
+		  "*** Debug Filesys::SmbClient *** "
+		  "Initializing the smbclient library ...: %s\n", 
 	        strerror(errno));
 #endif
         }
@@ -54,7 +71,8 @@ _mkdir(fname,mode)
         {
 	RETVAL = 0;
 #ifdef VERBOSE
-	fprintf(stderr, "mkdir %s directory : %s\n", fname,strerror(errno)); 
+	fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+			    "mkdir %s directory : %s\n", fname,strerror(errno)); 
 #endif
 	}
       else RETVAL = 1;
@@ -75,7 +93,8 @@ _rmdir(fname)
         {
 	RETVAL = 0;
 #ifdef VERBOSE
-	fprintf(stderr, "rmdir %s directory : %s\n", fname,strerror(errno));
+	fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+			    "rmdir %s directory : %s\n", fname,strerror(errno));
 #endif
 	}
        else RETVAL = 1;
@@ -98,7 +117,8 @@ _opendir(fname)
 	    RETVAL = 0;
 #ifdef VERBOSE
   if (RETVAL<0) 
-	{fprintf(stderr, "Error opendir %s : %s\n", fname, strerror(errno));}
+	{fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+			     "Error opendir %s : %s\n", fname, strerror(errno));}
 #endif
 	  }
     OUTPUT:
@@ -116,7 +136,8 @@ _closedir(fd)
       RETVAL = smbc_closedir(fd);
 #ifdef VERBOSE
       if (RETVAL < 0)
-        { fprintf(stderr, "Closedir : %s\n", strerror(errno)); }
+        { fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+			        "Closedir : %s\n", strerror(errno)); }
 #endif
     OUTPUT:
       RETVAL
@@ -174,7 +195,8 @@ _stat(fname)
 	   else 
 		{
 #ifdef VERBOSE
-         	fprintf(stderr, "Stat: %s\n", strerror(errno)); 
+         	fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+				    "Stat: %s\n", strerror(errno)); 
 #endif
                 XPUSHs(sv_2mortal(newSVnv(0)));
                 }
@@ -227,7 +249,8 @@ _rename(oname,nname)
 	RETVAL = 0;
 #ifdef VERBOSE	
 	fprintf(stderr, 
-                  "Rename %s in %s : %s\n", 
+                  "*** Debug Filesys::SmbClient *** "
+			"Rename %s in %s : %s\n", 
                   oname, nname, strerror(errno)); 
 #endif
 	}
@@ -254,7 +277,8 @@ _open(fname, mode)
 			fname+=2; 
 			seek_end = 1;
 #ifdef VERBOSE
-			fprintf(stderr, "Open append %s : %s\n", fname); 
+			fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+					    "Open append %s : %s\n", fname); 
 #endif
 		}
 	/* Mode > */
@@ -266,13 +290,18 @@ _open(fname, mode)
 	/* Mod < */
 	else flags =  O_RDONLY;
       RETVAL = smbc_open(fname,flags, mode);	
+#ifdef VERBOSE
+	fprintf(stderr, "*** Debug Filesys::SmbClient *** :"
+			    "Open %s return %d\n", fname, RETVAL); 
+#endif
       if (RETVAL < 0)
         { 
 	RETVAL = 0;
 #ifdef VERBOSE
-	fprintf(stderr, "Open %s : %s\n", fname, strerror(errno)); 
+	fprintf(stderr, "*** Debug Filesys::SmbClient *** :"
+                      "Open %s : %s\n", fname, strerror(errno)); 
 #endif
-	}
+ 	}
 	else if (seek_end) { smbc_lseek(RETVAL, 0, SEEK_END); }
     OUTPUT:
       RETVAL
@@ -294,9 +323,10 @@ _read(fd,count)
      buf[returnValue]='\0';
 #ifdef VERBOSE
      if (returnValue < 0)
-        { fprintf(stderr, "Read %s : %s\n", buf, strerror(errno)); }
+        { fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+                          "Read %s : %s\n", buf, strerror(errno)); }
 #endif
-     if (returnValue==0) {RETVAL=&PL_sv_undef;}
+     if (returnValue<=0) {RETVAL=&PL_sv_undef;}
      else {RETVAL=newSVpvn(buf,returnValue);}
     OUTPUT:
       RETVAL
@@ -313,14 +343,18 @@ _write(fd,buf,count)
  */
       RETVAL=smbc_write(fd,buf,count);
 #ifdef VERBOSE
-	fprintf(stderr, "write %d bytes: %s\n",count, buf);	
+	fprintf(stderr, "*** Debug Filesys::SmbClient *** :"
+			    "write %d bytes: %s\n",count, buf);	
        	if (RETVAL < 0)
         { 
 	if (RETVAL == EBADF) 
-		fprintf(stderr, "write fd non valide\n");
+		fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+				    "write fd non valide\n");
 	else if (RETVAL == EINVAL) 
-		fprintf(stderr, "write param non valide\n");
-	else fprintf(stderr, "write %d : %s\n", fd, strerror(errno)); 
+		fprintf(stderr, "*** Debug Filesys::SmbClient *** :"
+				    "write param non valide\n");
+	else fprintf(stderr, "*** Debug Filesys::SmbClient *** :"
+				   "write %d : %s\n", fd, strerror(errno)); 
 	}
 #endif
     OUTPUT:
@@ -353,7 +387,8 @@ _unlink(fname)
 	RETVAL = 0;
 #ifdef VERBOSE	
 	fprintf(stderr, 
-                "Failed to unlink %s : %s\n", 
+                "*** Debug Filesys::SmbClient *** "
+		    "Failed to unlink %s : %s\n", 
                 fname, strerror(errno)); 
 #endif
 	}
@@ -375,7 +410,8 @@ _unlink_print_job(purl, id)
       RETVAL = smbc_unlink_print_job(purl, id);
 #ifdef VERBOSE
       if (RETVAL<0)
-         fprintf(stderr, "Failed to unlink job id %u on %s, %s, %u\n", 
+         fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+				 "Failed to unlink job id %u on %s, %s, %u\n", 
 	         id, purl, strerror(errno), errno);
 #endif
     OUTPUT:
@@ -394,7 +430,8 @@ _print_file(purl, printer)
       RETVAL = smbc_print_file(purl, printer);
 #ifdef VERBOSE
       if (RETVAL<0)
-         fprintf(stderr, "Failed to print file %s on %s, %s, %u\n", 
+         fprintf(stderr, "*** Debug Filesys::SmbClient *** "
+				 "Failed to print file %s on %s, %s, %u\n", 
 	         purl, printer, strerror(errno), errno);
 #endif
     OUTPUT:
