@@ -30,3 +30,8 @@ Revision history for Perl extension Filesys::SmbClient.
 0.6  2001/12/13 23:20:41  alian
 	+ Change in _read method for take it binary safe. Tks to Robert Richmond
 	<bob@netus.com>
+
+0.7  2002/01/03 10:42:51  alian
+	+ Add comment for temporay hack in $HOME/.smb/smb.conf
+	+ Set $ENV['HOME'} to /tmp if unset
+	+ Add smb2www-2.cgi

@@ -5,6 +5,10 @@ package Filesys::SmbClient;
 # Copyright 2000 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 0.7  2002/01/03 10:42:51  alian
+# - Add comment for temporay hack in $HOME/.smb/smb.conf
+# - Set $ENV['HOME'} to /tmp if unset
+#
 # Revision 0.6  2001/12/13 23:20:41  alian
 # - Change in _read method for take it binary safe. Tks to Robert Richmond
 # <bob@netus.com>
@@ -54,7 +58,7 @@ require AutoLoader;
 @EXPORT = qw(SMBC_DIR SMBC_WORKGROUP SMBC_SERVER SMBC_FILE_SHARE
 	     SMBC_PRINTER_SHARE SMBC_COMMS_SHARE SMBC_IPC_SHARE SMBC_FILE
 	     SMBC_LINK);
-$VERSION = ('$Revision: 0.6 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 0.7 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -111,6 +115,13 @@ sub new
 	push(@l, $vars{'debug'});
       }    
     else { @l =("","","",0); }
+    # Here is a temporary hack:
+    # Actually libsmbclient will segfault if it can't find file
+    # $ENV{HOME}/.smb/smb.conf so I will test if it exist,
+    # and create it if no file is found. A empty file is enough ...
+    # In cgi environnement, $ENV{HOME} can be unset because
+    # nobody is not a real user. So I will set $ENV{HOME} to dir /tmp
+    if (!$ENV{HOME}) {$ENV{HOME}="/tmp";}
     if (!-e "$ENV{HOME}/.smb/smb.conf")
 	{
 	  print STDERR "you don't have a $ENV{HOME}/.smb/smb.conf, ",
@@ -118,8 +129,10 @@ sub new
 	  mkdir "$ENV{HOME}/.smb" unless (-e "$ENV{HOME}/.smb");
 	  open(F,">$ENV{HOME}/.smb/smb.conf") || 
 	    die "Can't create $ENV{HOME}/.smb/smb.conf : $!\n";
-	  close(F);
+	  close(F);	  
 	}
+    # End of temporary hack
+
     my $ret = _init(@l);
     if ($ret <0)
       {die 'You must have a samba configuration file '.
@@ -201,7 +214,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 0.6 $
+$Revision: 0.7 $
 
 =head1 FONCTIONS
 
