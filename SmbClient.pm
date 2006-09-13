@@ -2,9 +2,12 @@ package Filesys::SmbClient;
  
 # module Filesys::SmbClient : provide function to access Samba filesystem
 # with libsmclient.so
-# Copyright 2000-2005 A.Barbet alian@alianwebserver.com.  All rights reserved.
+# Copyright 2000-2006 A.Barbet alian@alianwebserver.com.  All rights reserved.
 
 # $Log: SmbClient.pm,v $
+# Revision 3.1  2006/09/13 13:49:32  alian
+# release 3.1: fix for rt#12221 rt#18757 rt#13173 and bug in configure
+#
 # Revision 3.0  2005/03/04 16:15:00  alian
 # 3.0  2005/03/05 alian
 #  - Update to samba3 API and use SMBCTXX
@@ -17,26 +20,6 @@ package Filesys::SmbClient;
 #
 # Revision 1.5  2003/11/09 18:28:01  alian
 # Add Copyright section
-#
-# Revision 1.4  2002/10/18 13:00:30  alian
-# Same as previous release. Restrict filehandle to 5.6 and later
-#
-# Revision 1.3  2002/10/17 18:21:05  alian
-# -Add tie method to play with filehandle like usually 
-# (tks to Bryan Castillo for idea)
-# - Update Pod documentation
-#
-# Revision 1.2  2002/08/09 11:09:14  alian
-# Correction usage mkdir incorrect
-#
-# Revision 1.1  2002/02/24 09:55:20  alian
-# - Update to 1.1 release. With autoconf and last test, this release can be
-# see as first stable tested release.
-#
-# Revision 0.10  2002/02/24 09:53:32  alian
-# - Fix a bug in open that can cause segfault if file is not found
-# - Add include for autoconf file
-# - Update DEBUG syntax
 #
 # See file CHANGES for others update
 
@@ -70,7 +53,7 @@ my $DEBUG = 0;
 	     SMBC_LINK _write _open _close _read _lseek 
 	     SMB_CTX_FLAG_USE_KERBEROS SMB_CTX_FLAG_FALLBACK_AFTER_KERBEROS
              SMBCCTX_FLAG_NO_AUTO_ANONYMOUS_LOGON);
-$VERSION = ('$Revision: 3.0 $ ' =~ /(\d+\.\d+)/)[0];
+$VERSION = ('$Revision: 3.1 $ ' =~ /(\d+\.\d+)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -455,7 +438,7 @@ When a path is used, his scheme is :
 
 =head1 VERSION
 
-$Revision: 3.0 $
+$Revision: 3.1 $
 
 =head1 FONCTIONS
 

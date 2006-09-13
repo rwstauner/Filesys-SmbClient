@@ -3,7 +3,6 @@ AC_INIT(libauthSamba.h)
 
 AC_CONFIG_HEADERS(config.h)
 
-
 dnl Checks for library functions.
 AC_FUNC_ALLOCA
 
@@ -42,6 +41,21 @@ AC_TRY_COMPILE([#include <libsmbclient.h>],
 if test "$smbctxFlags_ok" = yes; then
   AC_DEFINE(HAVE_SMBCTXX_FLAG,,[define if SMBCTXX->flags flag exist.])
   AC_MSG_RESULT([Good you have SMBCTXX->flags ])
+  CFLAGS="$CFLAGS -DHAVE_SMBCTXX_FLAG"
 else
   AC_MSG_RESULT([You don't define SMBCTXX->flags. Samba older than 3.0.11. Filesys::SmbClient::set_flag will not work])
 fi
+
+dnl This is context->close_fn or context close ?
+AC_TRY_COMPILE([#include <libsmbclient.h>],
+           [SMBCCTX *c; c->close_fn(c,0);],
+        smbctxclosefn=yes, smbctxclosefn=no)
+if test "$smbctxclosefn" = yes; then
+  AC_DEFINE(HAVE_CLOSEFN,, [define if SMBCTXX->close_fn exist.])
+  AC_MSG_RESULT([You use SMBCTXX->close_fn (release >= 3.0.20). ])
+  CFLAGS="$CFLAGS -DHAVE_CLOSEFN"
+else
+  AC_MSG_RESULT([You use SMBCTXX->close (release < 3.0.20). ])
+fi
+
+AC_OUTPUT

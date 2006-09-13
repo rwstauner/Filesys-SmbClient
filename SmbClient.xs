@@ -188,6 +188,12 @@ PPCODE:
 #ifdef VERBOSE
   fprintf(stderr, "! Filesys::SmbClient : _readdir: %d\n", fd); 
 #endif
+// Fix for rt#12221 : macro "readdir" passed 2 arguments, but takes just 1
+// Seems only work on linux, not solaris
+// Already defined in usr/lib/perl/5.8/CORE/reentr.inc:1322:# define readdir(a)
+#if !(defined (__SVR4) && defined (__sun)) && !defined(_AIX)
+#undef readdir
+#endif
   dirp = (struct smbc_dirent *)context->readdir(context, fd);
   if (dirp) {
     XPUSHs(sv_2mortal(newSVnv(dirp->smbc_type)));
@@ -436,7 +442,11 @@ CODE:
  * Close file desriptor fd
  *
  */
+#ifdef HAVE_CLOSEFN
+  RETVAL=context->close_fn(context, fd);
+#else
   RETVAL=context->close(context, fd);
+#endif
 OUTPUT:
   RETVAL
 

@@ -15,6 +15,9 @@
    */
 #undef HAVE_ALLOCA_H
 
+/* define if SMBCTXX->close_fn exist. */
+#undef HAVE_CLOSEFN
+
 /* Define to 1 if you have the `smbclient' library (-lsmbclient). */
 #undef HAVE_LIBSMBCLIENT
 
