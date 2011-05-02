@@ -383,6 +383,10 @@ sub rmdir_recurse  {
   return $self->rmdir($url);
 }
 
+sub DESTROY {
+  my $self=shift;
+  _free_context($self->{context}, 1);
+}
 
 1;
 
