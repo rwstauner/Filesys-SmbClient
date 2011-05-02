@@ -1,5 +1,7 @@
 Revision history for Perl extension Filesys::SmbClient.
 
+ - fix rt#64774: fixed disjoint between tests planned and skipped in t/02tie.t
+
 3.1  2006/09/07 17:15:00 alian
  - fix rt#12221: compile error on Debian Sarge
  - fix rt#18757: compile error with Gentoo Linux/samba 3.0.21b

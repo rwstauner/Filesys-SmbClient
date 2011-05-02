@@ -8,13 +8,15 @@ use File::Copy;
 use POSIX;
 use Config;
 
+my $tests = 25;
+
 if( !$Config{'PERL_API_REVISION'} or !$Config{'PERL_VERSION'} or 
     ($Config{'PERL_API_REVISION'} != 5  or $Config{PERL_VERSION}<6)) {
   plan skip_all =>
     'tie filehandle for Filesys::SmbClient didn\'t work before Perl 5.6';
 }
 else {
-  plan tests => 25;
+  plan tests => $tests;
 }
 
 require Filesys::SmbClient;
@@ -23,7 +25,7 @@ my $buffer = "A test of write call\n";
 my $buffer2 = "buffer of 1234\n";
 
 SKIP: {
-  skip "No server defined for test at perl Makefile.PL", 20 if (!-e ".c");
+  skip "No server defined for test at perl Makefile.PL", $tests if (!-e ".c");
   my $ok = 0;
   my (%param,$server);
   if (open(F,".c")) {
