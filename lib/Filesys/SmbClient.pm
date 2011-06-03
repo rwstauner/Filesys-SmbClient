@@ -8,6 +8,7 @@ package Filesys::SmbClient;
 
 # $Log: SmbClient.pm,v $
 # Revision 3.99  2010/04/02 12:10:05  philipp
+#  - Add additional TIEHANDLE methods.
 #  - Fix return values to true/false as per Perl, rather than 0 on success
 #    and <0 on failure.
 #  - Use new API from samba 3.4 onwards
@@ -58,7 +59,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 require Exporter;
 require DynaLoader;
 
-use POSIX qw(SEEK_SET);
+use POSIX qw(SEEK_CUR);
 use Tie::Handle;
 
 BEGIN {
@@ -73,7 +74,7 @@ BEGIN {
   # allow direct access to the stubs
   %EXPORT_TAGS = (
 	raw => [qw(
-		    _init _set_flags _mkdir _rmdir
+		    _init _free _set_flags _mkdir _rmdir
 		    _opendir _closedir _readdir _telldir _lseekdir
 		    _stat _fstat _rename _open _read _write _lseek _ftruncate
 		    _close _unlink _unlink_print_job _print_file
@@ -84,7 +85,7 @@ BEGIN {
   Exporter::export_ok_tags('raw');
 }
 
-$VERSION = ('$Revision: 3.99_30 $ ' =~ /(\d+\.\d+(_\d+)?)/)[0];
+$VERSION = ('$Revision: 3.99_40 $ ' =~ /(\d+\.\d+(_\d+)?)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -112,7 +113,7 @@ sub TIEHANDLE {
 sub OPEN {
   my ($class,$fn,$mode) = @_;
   $mode = '0666' if (!$mode);
-  print "OPEN\n"  if ($DEBUG);
+  print "OPEN\n" if ($DEBUG);
   $class->{FD} = _open($class->{context}, $fn, $mode) or return undef;
   $class;
 }
@@ -121,11 +122,35 @@ sub OPEN {
 # WRITE
 #------------------------------------------------------------------------------
 sub WRITE {
-  my ($self,$buffer,$length,$offset) = @_;
-  print "Filesys::SmbClient WRITE\n"  if ($DEBUG);
-  $buffer = substr($buffer,0,$length) if ($length);
-  SEEK($self,$offset, SEEK_SET) if ($offset);
-  my $lg = _write($self->{context}, $self->{FD}, $buffer, $length);
+  my ($self, undef, $len) = @_;
+  my $off = (@_ == 4) ? $_[3] : 0;
+  print "Filesys::SmbClient WRITE\n" if ($DEBUG);
+  my $lg = _write($self->{context}, $self->{FD}, $_[1], $len, $off);
+  return ($lg == -1) ? undef : $lg;
+}
+
+#------------------------------------------------------------------------------
+# PRINT
+#------------------------------------------------------------------------------
+sub PRINT {
+  my $self = shift;
+  print "Filesys::SmbClient PRINT\n" if ($DEBUG);
+  local $, ||= '';
+  local $\ ||= '';
+  my $buf = join($,, @_) . $\;
+  my $lg = WRITE($self, $buf, length($buf), 0);
+  return ($lg == -1) ? undef : $lg;
+}
+
+#------------------------------------------------------------------------------
+# PRINTF
+#------------------------------------------------------------------------------
+sub PRINTF {
+  my $self = shift;
+  my $fmt = shift;
+  print "Filesys::SmbClient PRINTF\n" if ($DEBUG);
+  my $buf = sprintf $fmt, @_;
+  my $lg = WRITE($self, $buf, length($buf), 0);
   return ($lg == -1) ? undef : $lg;
 }
 
@@ -136,6 +161,15 @@ sub SEEK {
   my ($self,$offset,$whence) = @_;
   print "Filesys::SmbClient SEEK\n" if ($DEBUG);
   return _lseek($self->{context}, $self->{FD}, $offset, $whence);
+}
+
+#------------------------------------------------------------------------------
+# TELL
+#------------------------------------------------------------------------------
+sub TELL {
+  my ($self) = @_;
+  print "Filesys::SmbClient TELL\n" if ($DEBUG);
+  return _lseek($self->{context}, $self->{FD}, 0, SEEK_CUR);
 }
 
 #------------------------------------------------------------------------------
@@ -195,6 +229,15 @@ sub CLOSE {
 }
 
 #------------------------------------------------------------------------------
+# FILENO
+#------------------------------------------------------------------------------
+sub FILENO {
+  my $self = shift;
+  print "Filesys::SmbClient FILENO\n" if ($DEBUG);
+  return -1;
+}
+
+#------------------------------------------------------------------------------
 # UNTIE
 #------------------------------------------------------------------------------
 sub UNTIE {
@@ -202,6 +245,10 @@ sub UNTIE {
   print "Filesys::SmbClient UNTIE\n" if ($DEBUG);
   CLOSE($self);
 }
+
+
+
+
 
 #------------------------------------------------------------------------------
 # new
@@ -230,6 +277,12 @@ sub new($;%) {
   $vars{'flags'} && _set_flags($self->{context}, $vars{'flags'});
 
   return $self;
+}
+
+sub DESTROY ($) {
+  my ($self) = @_;
+
+  _free($self->{context}, 1);
 }
 
 sub open($$;$) {

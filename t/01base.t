@@ -52,7 +52,7 @@ SKIP: {
   isa_ok($fd,"SMBCFILEPtr","Open test file for writing")
     or diag("With $!");
 
-  ok(_write($smb,$fd,$buffer,length($buffer))>0,"Write to test file");
+  ok(_write($smb,$fd,$buffer,length($buffer),0)>0,"Write to test file");
 
   is(_close($smb,$fd),0,"Close test file")
     or diag("With $!");

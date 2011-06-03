@@ -49,6 +49,7 @@ WriteMakefile
    'VERSION_FROM' => 'lib/Filesys/SmbClient.pm',
    'INC'          => "-I$include",
    'DEFINE'       => $define,
+   'CCFLAGS'      => "-Wall -Wunused -Wsign-compare -Wuninitialized",
    'LIBS'         => ["-L$lib -lsmbclient"],
    'OBJECT'       => 'libauthSamba.o SmbClient.o',
    'PREREQ_PM'    => {

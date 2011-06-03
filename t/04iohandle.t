@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 36;
+use Test::More tests => 38;
 
 use constant { NULL => 0 };
 
@@ -49,13 +49,23 @@ SKIP: {
 
   ok($args[7] == 6, 'check size of file via stat');
 
-  $ret = $file->truncate(5);
+  $ret = $file->truncate(3);
 
-  ok($ret, 'truncate to 5');
+  ok($ret, 'truncate to 3');
 
   @args = $file->stat();
 
-  ok($args[7] == 5, 'check size of file after truncate');
+  ok($args[7] == 3, 'check size of file after truncate');
+
+  my $literal = 'abcdefghijklmnopqrstuvwxyz';
+
+  $ret = $file->write($literal, 3);
+
+  is($ret, 3, 'write 3');
+
+  $ret = $file->write($literal, 4, -6);
+
+  is($ret, 4, 'write 4');
 
   $ret = $file->close();
 
@@ -80,8 +90,8 @@ SKIP: {
   $buf = undef;
   $ret = $file->read($buf, 1024);
 
-  is($ret, 5, 'read back file a');
-  is($buf, 'fooba', 'actual contents of reading back a');
+  is($ret, 3 + 3 + 4, 'read back file a');
+  ok($buf eq 'fooabcuvwx', 'actual contents of reading back a');
 
   $ret = $file->eof();
 

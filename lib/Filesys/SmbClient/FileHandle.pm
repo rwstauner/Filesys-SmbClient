@@ -7,6 +7,8 @@ use strict;
 
 use Filesys::SmbClient qw(:raw);
 
+use POSIX qw(SEEK_SET SEEK_CUR SEEK_END);
+
 our (@ISA);
 
 use Exporter;
@@ -160,6 +162,12 @@ sub truncate($$) {
 
   my $ret = _ftruncate(${*$fh}{smb}, ${*$fh}{fd}, $len);
 
+  my $whence = _lseek(${*$fh}{smb}, ${*$fh}{fd}, 0, SEEK_CUR);
+
+  if ($whence > $len) {
+    _lseek(${*$fh}{smb}, ${*$fh}{fd}, 0, SEEK_END);
+  }
+
   return ($ret < 0) ? 0 : 1;
 }
 
@@ -185,14 +193,12 @@ sub ungetc($$) {
   croak 'ungetc not supported';
 }
 
-sub write($$$;$) {
-  my ($fh, $buf, $len) = @_;
+sub write($$;$$) {
+  my ($fh, undef) = @_;
+  my $len = (@_ >= 3) ? $_[2] : length($_[1]);
   my $off = (@_ == 4) ? $_[3] : 0;
 
-  $buf = substr($buf, $off, $len) unless ($off == 0);
-  $len = length($buf);
-
-  my $ret = _write(${*$fh}{smb}, ${*$fh}{fd}, $buf, $len);
+  my $ret = _write(${*$fh}{smb}, ${*$fh}{fd}, $_[1], $len, $off);
 
   if ($ret == -1) {
     ${*$fh}{error} = $! + 0;

@@ -1,5 +1,15 @@
 Revision history for Perl extension Filesys::SmbClient.
 
+3.99  2010/03/05 12:08:52 philipp
+ - return values should match Perl paradigms for success, not C's.
+ - use IO::Handle and IO::Dir wrappers for methods
+ - add DESTROY method to solve context leak
+ - move to Samba 3.4.4 API
+ - use smbc_getXxxFunction() methods instead of deprecated object
+   method pointers
+ - have _read() stub deposit data directly into scalar
+ - add support for offset/length parameters on _read() and _write()
+
 3.1  2006/09/07 17:15:00 alian
  - fix rt#12221: compile error on Debian Sarge
  - fix rt#18757: compile error with Gentoo Linux/samba 3.0.21b

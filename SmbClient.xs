@@ -54,11 +54,23 @@ CODE:
   RETVAL = context; 
 #ifdef VERBOSE
   fprintf(stderr, "! Filesys::SmbClient : "
-	          "init %d context\n", context); 
+	          "init %p context\n", context); 
 #endif
 OUTPUT:
   RETVAL
 
+int
+_free(context, forced)
+  SMBCCTX *context
+  int forced
+CODE:
+  RETVAL = smbc_free_context(context, forced);
+#ifdef VERBOSE
+  fprintf(stderr, "! Filesys::SmbClient : "
+	          "free %p context %d\n", context, RETVAL);
+#endif
+OUTPUT:
+  RETVAL
 
 int
 _set_flags(context, flag)
@@ -400,8 +412,8 @@ _read(context, fd, bufsv, count, offset)
   SMBCCTX *context
   SMBCFILE *fd
   SV *bufsv
-  unsigned count
-  unsigned offset
+  int count
+  int offset
 CODE:
 /* 
  * Read count bytes on file descriptor fd
@@ -410,15 +422,25 @@ CODE:
   smbc_read_fn read_fn = smbc_getFunctionRead(context);
   char *buf;
   STRLEN blen;
+  int returnValue;
 
-  if (! SvOK(bufsv))
+  if (count < 0)
+    croak("Negative count");
+
+  if (!SvOK(bufsv))
     sv_setpvn(bufsv, "", 0);
   (void)SvPV_force(bufsv, blen);
 
-  if (offset > SvCUR(bufsv))
-    offset = SvCUR(bufsv);
-  buf = SvGROW(bufsv, count + offset) + offset;
-  int returnValue = read_fn(context, fd, buf, count);
+  if (offset < 0) {
+    if ((unsigned) -offset > blen)
+      croak("Offset beyond end");
+    offset += blen;
+  } else if ((unsigned) offset > blen)
+    offset = blen;
+
+  buf = SvGROW(bufsv, (unsigned) (count + offset)) + offset;
+
+  returnValue = read_fn(context, fd, buf, count);
 #ifdef VERBOSE
   if (returnValue <= 0) {
     fprintf(stderr, "*** Error Filesys::SmbClient: "
@@ -434,18 +456,40 @@ OUTPUT:
   RETVAL
 
 int
-_write(context, fd, buf, count)
+_write(context, fd, bufsv, count, offset)
   SMBCCTX *context
   SMBCFILE *fd
-  char *buf
+  SV *bufsv
   int count
+  int offset
 CODE:
 /* 
  * Write buf on file descriptor fd
  *
  */
   smbc_write_fn write_fn = smbc_getFunctionWrite(context);
-  int returnValue = write_fn(context, fd, buf, count);
+  char *buf;
+  STRLEN blen;
+  int returnValue;
+
+  if (count < 0)
+    croak("Negative count");
+
+  SvPV_const(bufsv, blen);
+
+  if (offset < 0) {
+    if ((unsigned) -offset > blen)
+      croak("Offset beyond end");
+    offset += blen;
+  } else if ((unsigned) offset > blen)
+    offset = blen;
+
+  if ((unsigned) (offset + count) > blen)
+    count = blen - offset;
+
+  buf = SvPVX(bufsv) + offset;
+
+  returnValue = write_fn(context, fd, buf, count);
 #ifdef VERBOSE
   fprintf(stderr, "! Filesys::SmbClient :"
 	          "write %d bytes: %s\n", count, buf);	

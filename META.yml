@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Filesys-SmbClient
-version:             3.99_30
+version:             3.99_40
 abstract:            Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so
 license:             ~
 author:              

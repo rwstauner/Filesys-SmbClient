@@ -15,7 +15,7 @@ if( !$Config{'PERL_API_REVISION'} or !$Config{'PERL_VERSION'} or
     'tie filehandle for Filesys::SmbClient didn\'t work before Perl 5.6';
 }
 else {
-  plan tests => 24;
+  plan tests => 25;
 }
 
 require Filesys::SmbClient;
@@ -73,8 +73,6 @@ SKIP: {
   isa_ok($t, "Filesys::SmbClient", "TIE: tie & open a file")
     or diag("With $!");
 
-  # File::Copy() tries to do a stat() on each file, which won't work on
-  # a Tie::Handle
   # # try to copy file with File::Copy
   # copy(\*FD, "/tmp/toto");
   # ok(-e "/tmp/toto", "copy a filehandle with File::Copy");
@@ -115,6 +113,9 @@ SKIP: {
   # SEEK_END
   $rr = seek(FD,0,SEEK_END);
   is(getc(FD), undef, "TIE: Seek SEEK_END a file open");
+
+  $rr = tell(FD);
+  is($rr, length($buffer) + length($buffer2) + 2 * 2, "TIE: Tell");
 
   # sysread at end of file
   #diag "\nSYSREAD\n";
