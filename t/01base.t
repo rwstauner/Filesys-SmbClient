@@ -1,11 +1,13 @@
 #!/usr/bin/perl -w
 
 use Test::More;
-use Filesys::SmbClient;
+use Filesys::SmbClient qw(:raw SMBC_FILE SMBC_DIR SMBCCTX_FLAG_NO_AUTO_ANONYMOUS_LOGON);
 use strict;
 use diagnostics;
 
-plan tests=>18;
+use POSIX;
+
+plan tests => 31;
 
 my $loaded = 1;
 ok($loaded,"Load module");
@@ -14,112 +16,110 @@ my $buffer = "A test of write call\n";
 my $buffer2 = "buffer of 1234\n";
 
 SKIP: {
-  skip "No server defined for test at perl Makefile.PL", 17 if (!-e ".c");
-if (-e ".c") {
-  use POSIX;
-  my $ok = 0;
-  open(F,".c") || die "Can't read .c\n";
-  my $l = <F>; chomp($l); 
+  skip "No server defined for test at perl Makefile.PL", 17 unless (open(F,".c"));
+
+  my $l = <F>;
+  chomp($l); 
+  close(F);
+
   my @l = split(/\t/, $l);
   my %param = 
     (
      username  => $l[3],
-     password  => $l[4],
+     password  => $l[4] || '',
      workgroup => $l[2],
      debug     =>  0,
      flags     => SMBCCTX_FLAG_NO_AUTO_ANONYMOUS_LOGON
     );
-  my $smb = new Filesys::SmbClient(%param);
+
+  is(SMBC_FILE, 8, "verify importing SMBC_FILE");
+
+  my $smb = _init($param{username}, $param{password}, $param{workgroup},
+                  $param{debug});
+  isa_ok($smb, 'SMBCCTXPtr', "Allocate object");
+
   my $server = "smb://$l[0]/$l[1]";
 
   # Create a directory
-  ok($smb->mkdir("$server/toto",'0666'),"Create directory")
+  is(_mkdir($smb,"$server/toto",'0666'),0,"Create directory")
     or diag("With $!");
 
   # Create a existent directory
-  ok(!$smb->mkdir("$server/toto",'0666'),"Create existent directory");
+  isnt(_mkdir($smb,"$server/toto",'0666'),0,"Create existent directory");
 
   # Write a file
-  my $fd = $smb->open(">$server/toto/test",0666);
-  if ($fd) {
-    $ok = 1 if ($smb->write($fd,$buffer));
-  }
-  $smb->close($fd);
-  ok($ok,"Create file");
-  $ok=0;
+  my $fd = _open($smb,">$server/toto/test",0666);
+  isa_ok($fd,"SMBCFILEPtr","Open test file for writing")
+    or diag("With $!");
+
+  ok(_write($smb,$fd,$buffer,length($buffer))>0,"Write to test file");
+
+  is(_close($smb,$fd),0,"Close test file")
+    or diag("With $!");
 
   # Rename a file
-  ok($smb->rename("$server/toto/test","$server/toto/tata"),"Rename file")
+  ok(_rename($smb,"$server/toto/test","$server/toto/tata")>=0,"Rename file")
     or diag("With $!");
 
   # Stat a file
-  my @tab = $smb->stat("$server/toto/tata");
-  ok($#tab != 0,"Stat file ") or diag("With $!");
+  my @tab = _stat($smb,"$server/toto/tata");
+  ok(@tab == 13,"Stat file ") or diag("With $!");
 
   # Stat a non-existent file
-  @tab = $smb->stat("smb://jupidsdsdster/soft/lala");
-  ok($#tab == 0,"Stat non-existent file") or diag("With $!");
+  @tab = _stat($smb,"smb://jupidsdsdster/soft/lala");
+  ok(@tab == 0,"Stat non-existent file") or diag("With $!");
 
   # Read a file
-  my $buf;
-  $fd = $smb->open("$server/toto/tata",'0666');
-  while (my $l= $smb->read($fd,50)) {$buf.=$l; }
-  if (!$buf) { ok(0, "Read file"); }
-  else {
-    ok(length($buf) == length($buffer),"Read file")
-      or diag("read ",length($buf)," bytes)");
-  }
-  $smb->close($fd);
+  $fd = _open($smb,"$server/toto/tata",'0666');
+  isa_ok($fd,"SMBCFILEPtr","Open test file for reading")
+    or diag("With $!");
 
-  # Directory
-  # Read a directory
-  $fd = $smb->opendir("$server/toto"); 
-  my @a;
-  if ($fd) {	
-    foreach my $n ($smb->readdir($fd)) {push(@a,$n);}
-    $ok = 1 if ($#a==2);
-    $smb->close($fd);
-  }
-  ok($ok,"Read short directory"); $ok=0;
+  my $buf='abcdefghi';
+  $l = _read($smb,$fd,$buf,50,3);
+
+  is($l, length($buffer), "length on read test file")
+      or diag("read ", length($buf), " bytes)");
+  is($buf, 'abc' . $buffer, "contents on read test file");
+
+  $l = _read($smb,$fd,$buf,50,0);
+  is($l,0, "read at end-of-file returns 0");
+
+  ok(_close($smb,$fd)==0,"Closing test reading file");
 
   # Read long info on a directory
-  undef @a;
-  $fd = $smb->opendir("$server/toto");
-  if ($fd) {	
-    while (my $f = $smb->readdir_struct($fd)) { push(@a,$f); }
-    $ok = 1 if ($#a==2);
-    $smb->close($fd);
-  }
-  ok($ok,"Read long directory");
+  my @a;
+  $fd = _opendir($smb,"$server/toto");
+  isa_ok($fd,"SMBCFILEPtr","Opendir on toto");
+  while (my @b = _readdir($smb,$fd)) { is(@b,3,"iterative readdir on toto"); push(@a,$b[1]); }
+  is(@a,3,"Read long directory");
+  is(_close($smb,$fd),0,"Closing test directory");
 
   # Unlink a file
-  ok($smb->unlink("$server/toto/tata"),"Unlink file")
+  is(_unlink($smb,"$server/toto/tata"),0,"Unlink file")
     or diag("With $!");
 
   # Unlink a non-existent file
-  ok(!$smb->unlink("$server/toto/tatarr"),"Unlink non-existent file");
+  isnt(_unlink($smb,"$server/toto/tatarr"),0,"Unlink non-existent file");
 
-  ok($smb->mkdir("$server/toto/tate",'0666'),"Create directory")
+  is(_mkdir($smb,"$server/toto/tate",'0666'),0,"Create directory")
     or diag("With $!");
 
-  ok($smb->mkdir("$server/toto/tate/titi",'0666'),"Create directory")
+  is(_mkdir($smb,"$server/toto/tate/titi",'0666'),0,"Create directory")
     or diag("With $!");
 
-  ok($smb->rmdir_recurse("$server/toto/tate",'0666'),
-     "Rmdir entire directory") or diag("With $!");
-
-  # Erase this directory
-  ok($smb->rmdir("$server/toto/"),"Rm directory") or diag("With $!");
+  foreach ("$server/toto/tate/titi", "$server/toto/tate", "$server/toto") {
+    is(_rmdir($smb,$_),0,"Remove directory")
+      or diag("With $!");
+  }
 
   # Erase non-existent directory
-  ok(!$smb->rmdir("$server/totoarr/"),"Rm non-existent directory");
+  isnt(_rmdir($smb,"$server/totoarr/"),0,"Rm non-existent directory");
 
   # Rename a non-existent file
-  ok(!$smb->rename("$server/toto/testrr","$server/toto/tata"),
+  isnt(_rename($smb,"$server/toto/testrr","$server/toto/tata"),0,
      "Rename non-existent file");
 
   print "There is a .c file in this directory with info about your params \n",
         "for you SMB server test. Think to remove it if you have finish \n",
 	  "with test.\n\n";
-}
 }

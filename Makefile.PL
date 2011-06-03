@@ -28,7 +28,7 @@ if ($ans =~ /^y(es)?$/i)
     my $user = prompt("Smb user ?",$ENV{'USER'});
     my $pass = prompt("Smb password ?");
     open(FILE,">.c") || warn "Can't create .c for test: $!\n";
-    print FILE $server,"\t",$share,"\t",$workgroup,"\t",$user,"\t",$pass;
+    print FILE $server,"\t",$share,"\t",$workgroup,"\t",$user,"\t",$pass,"\n";
     close FILE;
   }
 
@@ -46,20 +46,19 @@ system("./configure --with-samba-prefix=$prefix") == 0
 WriteMakefile
   (
    'NAME'         => 'Filesys::SmbClient',
-   'VERSION_FROM' => 'SmbClient.pm',
+   'VERSION_FROM' => 'lib/Filesys/SmbClient.pm',
    'INC'          => "-I$include",
    'DEFINE'       => $define,
    'LIBS'         => ["-L$lib -lsmbclient"],
    'OBJECT'       => 'libauthSamba.o SmbClient.o',
-   'CCFLAGS'      => $ccfl,
-   'PREREQ_PM'    => { Test::More => 0},
-   'clean' => { FILES => "*~ config.status config.log config.h config.cache .c"},
-   ($] ge '5.005') ?
-   (
-    'AUTHOR' => 'Alain BARBET (alian@alianwebserver.com)',
-    'ABSTRACT' => 'Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so'
-   )
-   : ()
+   'PREREQ_PM'    => {
+		       Test::More => 0,
+#		       perl => '5.006',
+		     },
+   'PMLIBDIRS'    => [ 'lib', 'lib/Filesys' ],
+   'clean'        => { FILES => "*~ config.status config.log config.h config.cache .c" },
+    'AUTHOR'      => 'Alain BARBET (alian@alianwebserver.com)',
+    'ABSTRACT'    => 'Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so',
   );
 
 sub warn_user
