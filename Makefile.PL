@@ -97,19 +97,33 @@ sub try_to_find {
 
 sub find_path {
   my $ext = ($_[0]=~m!\.h$! ? "include" : "lib");
-  my $defaultsDir = { "/usr" => 1,
-		      "/usr/local" => 1,
-		      "/usr/local/samba" => 1,
-		      "/usr/local/samba3" => 1 };
-  my @pa = split(/:/, $ENV{PATH});
-  my @path;
-  foreach (@pa) {
-    s/bin//;
-    s!//!/!g;
-    s!/$!!g;
-    push(@path, $_."/$ext") if !$defaultsDir->{$_};
-  }
-  foreach (keys %$defaultsDir) { push(@path, $_."/$ext"); }
+  my @defaults = (
+    qw(
+      /usr/local/samba3
+      /usr/local/samba
+      /usr/local
+      /usr
+    ),
+    ''  # "" will be turned into "/lib", etc.
+  );
+  # keep the defaults in order at the end
+  my %seen = map {; ($_ => 1) } @defaults;
+  my @path = (
+    map  { "$_/$ext" }       # "/lib"
+    (
+      grep { !$seen{$_}++ }  # unique
+      (
+        map {
+          s/\/s?bin$//;      # strip trailing /bin or /sbin
+          s!//!/!g;          # remove duplicate slashes
+          s!/$!!g;           # remove trailing slash
+          $_;                # return
+        } split(/:/, $ENV{PATH})
+      ),
+    ),
+    @defaults
+  );
+
   print "I search in: ",(join "\n", @path),"\n";
   return @path;
 }
