@@ -85,7 +85,7 @@ BEGIN {
   Exporter::export_ok_tags('raw');
 }
 
-$VERSION = ('$Revision: 3.99_40 $ ' =~ /(\d+\.\d+(_\d+)?)/)[0];
+$VERSION = ('$Revision: 3.99_50 $ ' =~ /(\d+\.\d+(_\d+)?)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
@@ -516,6 +516,10 @@ Example:
 				  workgroup => "alian",
 				  debug     => 10);
 
+sub DESTROY {
+  my $self=shift;
+  _free_context($self->{context}, 1);
+}
 
 =over 4
 

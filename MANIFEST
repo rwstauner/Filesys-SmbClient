@@ -22,4 +22,5 @@ t/01base.t
 t/02tie.t
 t/03tie_perl56.t
 t/04iohandle.t
+t/05free_context.t
 typemap
