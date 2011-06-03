@@ -674,23 +674,3 @@ PPCODE:
   }
 
 #endif
-
-
-int
-_free_context(context, shutdown)
-  SMBCCTX *context
-  int shutdown
-CODE:
-/*
- * Attempt to delete a context and cleanup its connections.
- * if shutdown is 1 cleanup is forced even if connections are busy.
- */
-  RETVAL = smbc_free_context(context, shutdown);
-#ifdef VERBOSE
-  if (RETVAL != 0)
-    fprintf(stderr, "*** Error Filesys::SmbClient *** "
-		    "Failed to free context %s, %u\n",
-	            strerror(errno), errno);
-#endif
-OUTPUT:
-  RETVAL

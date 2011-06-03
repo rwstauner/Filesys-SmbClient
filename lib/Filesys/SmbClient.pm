@@ -516,10 +516,6 @@ Example:
 				  workgroup => "alian",
 				  debug     => 10);
 
-sub DESTROY {
-  my $self=shift;
-  _free_context($self->{context}, 1);
-}
 
 =over 4
 
