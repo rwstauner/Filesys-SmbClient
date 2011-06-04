@@ -109,7 +109,7 @@ sub find_path {
   # keep the defaults in order at the end
   my %seen = map {; ($_ => 1) } @defaults;
   my @path = (
-    map  { "$_/$ext" }       # "/lib"
+    map  { ("$_/${ext}64", "$_/$ext") }  # "/lib64", "/lib"
     (
       grep { !$seen{$_}++ }  # unique
       (
