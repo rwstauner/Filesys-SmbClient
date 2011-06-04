@@ -19,7 +19,7 @@ warn_user("libsmbclient.so") if (!-r "$lib/libsmbclient.so");
 my $ans = 
   prompt("Do you want make tests ?(you will be prompted for server / \n".
 	   "worgroup / share / user / password to make read write access.",
-	   "yes");
+	   "no");
 if ($ans =~ /^y(es)?$/i) 
   {
     my $server = prompt("Server ?","localhost");
