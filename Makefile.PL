@@ -125,6 +125,6 @@ sub find_path {
     @defaults
   );
 
-  print "I search in: ",(join "\n", @path),"\n";
+  print "Searching these directories: \n", map { "  $_\n" } @path;
   return @path;
 }
