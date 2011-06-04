@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 
-use Test::More tests => 38;
+use Test::More;
+
+my $tests = 38;
+plan tests => $tests;
 
 use constant { NULL => 0 };
 
@@ -10,7 +13,7 @@ use warnings;
 use Filesys::SmbClient qw(:raw);
 
 SKIP: {
-  skip "no server parameters", 30 unless (open(F,".c"));
+  skip "no server parameters", $tests unless (open(F,".c"));
 
   my $l = <F>; chomp($l);
   my ($server, $share, $workgroup, $user, $passwd) = split(/\t/, $l);

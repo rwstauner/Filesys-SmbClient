@@ -7,7 +7,8 @@ use diagnostics;
 
 use POSIX;
 
-plan tests => 31;
+my $tests = 31;
+plan tests => $tests;
 
 my $loaded = 1;
 ok($loaded,"Load module");
@@ -16,7 +17,7 @@ my $buffer = "A test of write call\n";
 my $buffer2 = "buffer of 1234\n";
 
 SKIP: {
-  skip "No server defined for test at perl Makefile.PL", 17 unless (open(F,".c"));
+  skip "No server defined for test at perl Makefile.PL", $tests - 1 unless (open(F,".c"));
 
   my $l = <F>;
   chomp($l); 
