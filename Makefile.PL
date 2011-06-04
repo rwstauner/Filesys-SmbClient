@@ -109,6 +109,7 @@ sub find_path {
   # keep the defaults in order at the end
   my %seen = map {; ($_ => 1) } @defaults;
   my @path = (
+    grep { -d $_ }           # only search dirs that actually exist
     map  { ("$_/${ext}64", "$_/$ext") }  # "/lib64", "/lib"
     (
       grep { !$seen{$_}++ }  # unique
