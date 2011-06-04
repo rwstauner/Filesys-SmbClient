@@ -53,7 +53,7 @@ WriteMakefile
    'LIBS'         => ["-L$lib -lsmbclient"],
    'OBJECT'       => 'libauthSamba.o SmbClient.o',
    'PREREQ_PM'    => {
-		       Test::More => 0,
+		       'Test::More' => 0,
 #		       perl => '5.006',
 		     },
    'PMLIBDIRS'    => [ 'lib', 'lib/Filesys' ],
