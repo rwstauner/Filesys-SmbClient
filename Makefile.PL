@@ -32,6 +32,10 @@ if ($ans =~ /^y(es)?$/i)
     print FILE $server,"\t",$share,"\t",$workgroup,"\t",$user,"\t",$pass,"\n";
     close FILE;
   }
+else {
+  # make sure this file isn't leftover from a previous run
+  unlink $conn_info if -e $conn_info;
+}
 
 # Trace for debug
 $ans = prompt("Compile module with trace to STDERR ?", "no");
