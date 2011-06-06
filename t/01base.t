@@ -40,14 +40,18 @@ SKIP: {
   isnt(_mkdir($smb,"$server/toto",'0666'),0,"Create existent directory");
 
   # Write a file
-  my $fd = _open($smb,">$server/toto/test",0666);
-  isa_ok($fd,"SMBCFILEPtr","Open test file for writing")
-    or diag("With $!");
+  SKIP: {
+    my $fd = _open($smb,">$server/toto/test",0666);
 
-  ok(_write($smb,$fd,$buffer,length($buffer),0)>0,"Write to test file");
+    isa_ok($fd,"SMBCFILEPtr","Smb File Descriptor")
+      # if opening fails, skip the next two
+      or skip "Failed to open file for writing: $!", 2;
 
-  is(_close($smb,$fd),0,"Close test file")
-    or diag("With $!");
+    ok(_write($smb,$fd,$buffer,length($buffer),0)>0,"Write to test file");
+
+    is(_close($smb,$fd),0,"Close test file")
+      or diag("With $!");
+  }
 
   # Rename a file
   ok(_rename($smb,"$server/toto/test","$server/toto/tata")>=0,"Rename file")
@@ -62,29 +66,47 @@ SKIP: {
   ok(@tab == 0,"Stat non-existent file") or diag("With $!");
 
   # Read a file
-  $fd = _open($smb,"$server/toto/tata",'0666');
-  isa_ok($fd,"SMBCFILEPtr","Open test file for reading")
-    or diag("With $!");
+  SKIP: {
+    my $fd = _open($smb,"$server/toto/tata",'0666');
+    isa_ok($fd,"SMBCFILEPtr","Smb File Descriptor")
+      or skip "Failed to open file for reading: $!", 4;
 
-  my $buf='abcdefghi';
-  $l = _read($smb,$fd,$buf,50,3);
+    my $l;
+    my $buf='abcdefghi';
+    $l = _read($smb,$fd,$buf,50,3);
 
-  is($l, length($buffer), "length on read test file")
-      or diag("read ", length($buf), " bytes)");
-  is($buf, 'abc' . $buffer, "contents on read test file");
+    is($l, length($buffer), "length on read test file")
+        or diag("read ", length($buf), " bytes)");
+    is($buf, 'abc' . $buffer, "contents on read test file");
 
-  $l = _read($smb,$fd,$buf,50,0);
-  is($l,0, "read at end-of-file returns 0");
+    $l = _read($smb,$fd,$buf,50,0);
+    is($l,0, "read at end-of-file returns 0");
 
-  ok(_close($smb,$fd)==0,"Closing test reading file");
+    ok(_close($smb,$fd)==0,"Closing test reading file");
+  }
 
   # Read long info on a directory
-  my @a;
-  $fd = _opendir($smb,"$server/toto");
-  isa_ok($fd,"SMBCFILEPtr","Opendir on toto");
-  while (my @b = _readdir($smb,$fd)) { is(@b,3,"iterative readdir on toto"); push(@a,$b[1]); }
-  is(@a,3,"Read long directory");
-  is(_close($smb,$fd),0,"Closing test directory");
+  SKIP: {
+    my @a;
+    my $fd = _opendir($smb,"$server/toto");
+
+    # FIXME: the number of tests in this group is unknown unless we populate the directory ourselves
+    # FIXME: this test requires 3 dir entires (".", "..", and something else)
+    my $dir_entries = 3;
+
+    isa_ok($fd,"SMBCFILEPtr","Smb Directory Handle")
+      or skip "Failed to open directory: $!", 2 + $dir_entries;
+
+    # _readdir returns (type, name, comment)
+    while (my @b = _readdir($smb,$fd)) {
+      is(@b,3,"iterative readdir on toto");
+      push(@a,$b[1]);
+    }
+
+    is(@a, $dir_entries, "Read long directory");
+
+    is(_close($smb,$fd),0,"Closing test directory");
+  }
 
   # Unlink a file
   is(_unlink($smb,"$server/toto/tata"),0,"Unlink file")
