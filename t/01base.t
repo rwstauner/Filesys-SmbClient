@@ -5,6 +5,9 @@ use Filesys::SmbClient qw(:raw SMBC_FILE SMBC_DIR SMBCCTX_FLAG_NO_AUTO_ANONYMOUS
 use strict;
 use diagnostics;
 
+use lib 't/lib';
+use Test_SMB;
+
 use POSIX;
 
 my $tests = 31;
@@ -17,21 +20,10 @@ my $buffer = "A test of write call\n";
 my $buffer2 = "buffer of 1234\n";
 
 SKIP: {
-  skip "No server defined for test at perl Makefile.PL", $tests - 1 unless (open(F,".c"));
+  skip_if_no_server_info($tests - 1);
 
-  my $l = <F>;
-  chomp($l); 
-  close(F);
-
-  my @l = split(/\t/, $l);
-  my %param = 
-    (
-     username  => $l[3],
-     password  => $l[4] || '',
-     workgroup => $l[2],
-     debug     =>  0,
-     flags     => SMBCCTX_FLAG_NO_AUTO_ANONYMOUS_LOGON
-    );
+  my %param = connection_params();
+  my $server = server_uri(%param);
 
   is(SMBC_FILE, 8, "verify importing SMBC_FILE");
 
@@ -39,7 +31,6 @@ SKIP: {
                   $param{debug});
   isa_ok($smb, 'SMBCCTXPtr', "Allocate object");
 
-  my $server = "smb://$l[0]/$l[1]";
 
   # Create a directory
   is(_mkdir($smb,"$server/toto",'0666'),0,"Create directory")

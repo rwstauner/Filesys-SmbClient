@@ -10,16 +10,16 @@ use constant { NULL => 0 };
 use strict;
 use warnings;
 
+use lib 't/lib';
+use Test_SMB;
+
 use Filesys::SmbClient qw(:raw);
 
 SKIP: {
-  skip "no server parameters", $tests unless (open(F,".c"));
+  skip_if_no_server_info($tests);
 
-  my $l = <F>; chomp($l);
-  my ($server, $share, $workgroup, $user, $passwd) = split(/\t/, $l);
-  close(F);
-
-  my $url = 'smb://' . $server . '/' . $share . '/';
+  my %param = connection_params();
+  my $url = server_uri(%param);
    
   my ($smb, $type, $name, $comment, @args, $ret, $file, $dir, $offset, $buf);
 
@@ -27,8 +27,7 @@ SKIP: {
 
   isa_ok($smb, 'Filesys::SmbClient');
 
-  $smb = Filesys::SmbClient->new(workgroup => $workgroup, user => $user,
-  			       password => $passwd, debug => 2);
+  $smb = Filesys::SmbClient->new(%param, debug => 2);
 
   isa_ok($smb, 'Filesys::SmbClient');
 

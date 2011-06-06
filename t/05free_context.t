@@ -5,6 +5,9 @@ use Filesys::SmbClient;
 use strict;
 use diagnostics;
 
+use lib 't/lib';
+use Test_SMB;
+
 (lc $^O eq 'linux' && system("lsof -v > /dev/null 2>&1") == 0)
   or plan skip_all => 'Linux and lsof required to test connection cleanup.';
 
@@ -14,22 +17,10 @@ my $tests = $loops * 2;
 plan tests => $tests;
 
 SKIP: {
-    # copied from t/02tie.t
-    skip "No server defined for test at perl Makefile.PL", $tests if (!-e ".c");
-    my $ok = 0;
-    my (%param,$server);
-    if (open(F,".c")) {
-      my $l = <F>; chomp($l);
-      my @l = split(/\t/, $l);
-      %param =
-        (
-         username  => $l[3],
-         password  => $l[4],
-         workgroup => $l[2],
-         debug     =>  0
-        );
-      $server = "smb://$l[0]/$l[1]";
-    }
+  skip_if_no_server_info($tests);
+
+  my %param = connection_params();
+  my $server = server_uri(%param);
 
   for( 1 .. $loops ){
     {

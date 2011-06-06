@@ -9,6 +9,9 @@ use File::Copy;
 use POSIX;
 use Config;
 
+use lib 't/lib';
+use Test_SMB;
+
 my $tests = 25;
 
 if( !$Config{'PERL_API_REVISION'} or !$Config{'PERL_VERSION'} or 
@@ -28,22 +31,10 @@ my $buffer2 = "buffer of 1234\n";
 use Data::Dumper;
 
 SKIP: {
-  skip "No server defined for test at perl Makefile.PL", $tests unless (open(F, ".c"));
+  skip_if_no_server_info($tests);
 
-  my $l = <F>;
-  chomp($l); 
-  close(F);
-
-  my (%param,$server);
-  my @l = split(/\t/, $l);
-  %param = 
-    (
-     username  => $l[3],
-     password  => $l[4],
-     workgroup => $l[2],
-     debug     =>  0
-    );
-  $server = "smb://$l[0]/$l[1]";
+  my %param = connection_params();
+  my $server = server_uri(%param);
 
   my $smb = Filesys::SmbClient->new(%param);
 

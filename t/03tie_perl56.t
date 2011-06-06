@@ -7,7 +7,12 @@ use warnings;
 use diagnostics;
 use Config;
 
+use lib 't/lib';
+use Test_SMB;
+
 use POSIX;
+
+my $tests = 20;
 
 if( !$Config{'PERL_API_REVISION'} or !$Config{'PERL_VERSION'} or 
     ($Config{'PERL_API_REVISION'} != 5  or $Config{PERL_VERSION}<6)) {
@@ -15,7 +20,7 @@ if( !$Config{'PERL_API_REVISION'} or !$Config{'PERL_VERSION'} or
     'tie filehandle for Filesys::SmbClient didn\'t work before Perl 5.6';
 }
 else {
-  plan tests => 20;
+  plan tests => $tests;
 }
 
 require Filesys::SmbClient;
@@ -24,22 +29,12 @@ my $buffer = "A test of write call\n";
 my $buffer2 = "buffer of 1234\n";
 
 SKIP: {
-  skip "No server defined for test at perl Makefile.PL", 20 unless (open(F, ".c"));
+  skip_if_no_server_info($tests);
 
-  my $l = <F>;
-  chomp($l); 
-  close(F);
+  my %param = connection_params();
+  my $server = server_uri(%param);
 
-  my @l = split(/\t/, $l);
-  my %param = 
-    (
-     username  => $l[3],
-     password  => $l[4],
-     workgroup => $l[2],
-     debug     =>  0
-    );
   my $smb = Filesys::SmbClient->new(%param);
-  my $server = "smb://$l[0]/$l[1]";
 
   # Create a directory
   ok($smb->mkdir("$server/toto"),"Create directory")
