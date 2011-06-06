@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Filesys-SmbClient
-version:            3.99_50
+version:            3.99_51
 abstract:           Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so
 author:
     - Alain BARBET (alian@alianwebserver.com)
@@ -11,6 +11,7 @@ configure_requires:
 build_requires:
     ExtUtils::MakeMaker:  0
 requires:
+    IO::Scalar:  0
     Test::More:  0
 no_index:
     directory:

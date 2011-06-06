@@ -85,7 +85,7 @@ BEGIN {
   Exporter::export_ok_tags('raw');
 }
 
-$VERSION = ('$Revision: 3.99_50 $ ' =~ /(\d+\.\d+(_\d+)?)/)[0];
+$VERSION = ('$Revision: 3.99_51 $ ' =~ /(\d+\.\d+(_\d+)?)/)[0];
 
 bootstrap Filesys::SmbClient $VERSION;
 
