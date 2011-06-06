@@ -55,7 +55,7 @@ WriteMakefile
    'PREREQ_PM'    => {
 		       'IO::Scalar' => 0,
 		       'Test::More' => 0,
-#		       perl => '5.006',
+		       perl => '5.006',
 		     },
    'PMLIBDIRS'    => [ 'lib', 'lib/Filesys' ],
    'clean'        => { FILES => "*~ config.status config.log config.h config.cache .c" },
