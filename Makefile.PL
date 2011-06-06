@@ -1,6 +1,7 @@
 use ExtUtils::MakeMaker;
 
 my ($define, $ccfl);
+my $conn_info = '.c';
 
 # special flag for AIX
 ($^O =~ m/AIX/i) ? ($ccfl = '-qcpluscmt') : ($ccfl = '');
@@ -27,7 +28,7 @@ if ($ans =~ /^y(es)?$/i)
     my $workgroup = prompt("Workgroup/Domain ?","");
     my $user = prompt("Smb user ?",$ENV{'USER'});
     my $pass = prompt("Smb password ?");
-    open(FILE,">.c") || warn "Can't create .c for test: $!\n";
+    open(FILE,">$conn_info") || warn "Can't create $conn_info for test: $!\n";
     print FILE $server,"\t",$share,"\t",$workgroup,"\t",$user,"\t",$pass,"\n";
     close FILE;
   }
@@ -58,7 +59,7 @@ WriteMakefile
 		       perl => '5.006',
 		     },
    'PMLIBDIRS'    => [ 'lib', 'lib/Filesys' ],
-   'clean'        => { FILES => "*~ config.status config.log config.h config.cache .c" },
+   'clean'        => { FILES => "*~ config.status config.log config.h config.cache $conn_info" },
     'AUTHOR'      => 'Alain BARBET (alian@alianwebserver.com)',
     'ABSTRACT'    => 'Filesys::SmbClient - Interface for access Samba filesystem with libsmclient.so',
   );
