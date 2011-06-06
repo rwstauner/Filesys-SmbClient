@@ -16,10 +16,10 @@ my $lib = try_to_find("libsmbclient.so");
 $lib = prompt("Where can I find libsmbclient.so ?",$lib);
 warn_user("libsmbclient.so") if (!-r "$lib/libsmbclient.so");
 
-# tests demande ?
+# should we test against a live server?
 my $ans = 
-  prompt("Do you want make tests ?(you will be prompted for server / \n".
-	   "worgroup / share / user / password to make read write access.",
+  prompt("Do you want test read/write operations against a live SMB server?\n" .
+     "(You will be prompted for server / worgroup / share / user / password.)",
 	   "no");
 if ($ans =~ /^y(es)?$/i) 
   {
